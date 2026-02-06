@@ -2,9 +2,9 @@
 
 ## Phase 0 — Project Setup
 
-- [ ] Scaffold the project with `npx create-eth@latest` — select Foundry as the solidity framework
-- [ ] Move/merge the generated project into this repo (or re-init here)
-- [ ] Verify the dev environment works: `yarn chain`, `yarn deploy`, `yarn start`
+- [x] Scaffold the project with `npx create-eth@latest` — select Foundry as the solidity framework
+- [x] Move/merge the generated project into this repo (or re-init here)
+- [x] Verify the dev environment works: `yarn chain`, `yarn deploy`, `yarn start`
 - [ ] Update `foundry.toml` to target Ink L2 (add Ink RPC + chain ID)
 - [ ] Add Ink to the Scaffold-ETH network config (`scaffold.config.ts`)
 - [ ] Set up `.env` files for deployer private key, Ink RPC URL, IPFS/Arweave API keys
@@ -39,3 +39,9 @@
 - [ ] Deploy contracts to Ink mainnet
 - [ ] Deploy frontend to Vercel
 - [ ] Wire up production env vars (RPC, contract addresses, storage keys)
+
+
+## Phase 5 - More
+
+deploy on superchain (https://console.optimism.io/)
+use https://attest.org/ / onchain identity (gitcoin / eas/ worldcoin?)
