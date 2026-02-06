@@ -1,3 +1,225 @@
+# Payp.ink
+
+# payp.ink
+
+Multi-creator micropaid articles via x402 on Ink. On-chain tracking, instant payouts, permanent storage, optional tipping.
+
+## Flow
+
+1. Creator writes article, sets price, enters ETH address
+2. Article uploaded to permanent storage
+3. Article slug + price + creator address + content hash stored on-chain
+4. Reader requests article → x402 negotiates payment
+5. Contract forwards 99% to creator, 1% to platform
+6. Contract increments views/earned for stats
+7. Reader can optionally tip creator (same 99/1 split)
+
+## Contracts
+
+**Paypink.sol**
+- Register article (slug, creator, price, content hash)
+- Record payment → immediate 99/1 split
+- Track views and earned per article
+
+**Tip.sol**
+- Tip any creator by address or article slug
+- Immediate 99/1 split
+- Track tips per creator
+
+## Data
+
+**On-chain (Ink)**
+- Article registry (slug → creator, price, views, earned, contentHash)
+- Tip totals per creator
+
+**Permanent storage (TBD)**
+- IPFS (needs pinning) or Arweave (via Irys)
+
+**Off-chain**
+- Creator metadata
+
+## Stack
+
+- Foundry
+- Next.js 14+
+- Viem
+- x402
+- Ink L2
+
+## Monetization Model
+
+### How x402 Fits
+
+x402 is the base layer - stateless, pay-per-view. Every article request goes through x402 payment negotiation. Simple, no accounts needed, reader pays and reads.
+
+But x402 alone has friction for repeat readers. That's where the other layers come in.
+
+### Monetization Stack
+
+| Method | Model | Bypass x402? | Use Case |
+|--------|-------|--------------|----------|
+| x402 | Pay per view | - | Casual readers, one-off access |
+| Tip | Voluntary, one-time | No | Reader wants to support creator beyond article price |
+| Access Pass (ERC-1155) | Pay once, unlimited | Yes | Fans of a specific creator |
+| Superfluid | Streaming subscription | Yes | Ongoing support, predictable creator income |
+| Revenue Share NFT | Buy % of future earnings | No | Invest in a creator's success |
+
+### How They Work Together
+
+1. **New reader** → x402 per article
+2. **Likes the creator** → tips on top of x402
+3. **Becomes a fan** → buys Access Pass, skips x402 for that creator
+4. **Wants ongoing support** → Superfluid stream
+5. **Believes in creator long-term** → buys Revenue Share NFT, earns % of all their income
+
+Access Pass and Superfluid subscription are checked before x402 kicks in. If reader holds a valid pass or has an active stream to the creator, content is served without payment negotiation.
+
+Revenue Share and Tips don't bypass anything - they're additive. Revenue Share holders earn from all creator income (x402, tips, passes, subscriptions).
+
+### Platform Cut
+
+All flows take 1% platform fee:
+- x402 payments
+- Tips
+- Access Pass mints
+- Superfluid streams (on withdrawal)
+- Revenue Share secondary sales
+
+## Todo (v1)
+
+- [ ] Paypink contract
+- [ ] Tip contract
+- [ ] Storage integration (IPFS or Arweave)
+- [ ] Article creation
+- [ ] x402 route handler
+- [ ] Tip UI
+- [ ] Stats dashboard
+
+## v2 Roadmap
+
+### Engagement
+- Paid comments (micropayment to comment, revenue to creator)
+- Boost/curate articles with ETH (weighted discovery)
+- Proof of readership (soulbound NFT badge for readers)
+
+### Creator Monetization
+- Access pass (ERC-1155) - pay once, unlimited access to a creator
+- Revenue sharing NFT - creator sells % of future earnings
+- Superfluid subscription streaming
+
+### Reader UX
+- Account abstraction (ERC-4337) - pre-fund balance, gasless reads
+- Session keys for frictionless repeat access
+
+### Trust/Quality
+- Creator staking - stake to be listed, slashable
+- On-chain referral tracking (reader → reader, % kickback)
+
+### Platform
+- Chainlink Automation for periodic bonus payouts
+- Governance token / DAO for fee decisions
+- Multi-chain deployment + bridging
+
+## v2 Deep Dives
+
+### Chainlink Automation
+
+Automated on-chain actions without manual triggers or centralized cron jobs.
+
+**Use Cases**
+
+- **Weekly top creator bonus**: Contract tracks earnings per period. Automation triggers payout to top N creators from a bonus pool funded by platform fees.
+- **Inactive creator cleanup**: Flag creators with no activity for X months. Automation removes from featured lists, frees up slugs.
+- **Superfluid stream health**: Check if streams are about to run dry, notify or auto-cancel before they fail.
+- **Revenue share distributions**: Batch calculate and distribute earnings to NFT holders periodically instead of per-transaction (gas optimization).
+
+**How It Works**
+
+1. Contract implements `AutomationCompatibleInterface`
+2. `checkUpkeep()` returns true when action needed
+3. Chainlink nodes call `performUpkeep()` to execute
+4. Platform funds LINK for automation gas
+
+### DAO / Governance
+
+Platform decisions controlled by token holders, not the team.
+
+**Governance Token: $PINK**
+
+- Earned by creators (based on earnings)
+- Earned by readers (based on spend)
+- Optionally purchasable (careful with tokenomics)
+
+**What the DAO Controls**
+
+- Platform fee % (default 1%, can be adjusted)
+- Bonus pool allocation
+- Featured/curated creator list
+- New feature prioritization
+- Treasury spending
+- Multi-chain expansion decisions
+
+**Structure**
+
+- Governor contract (OpenZeppelin Governor)
+- Timelock for execution delay
+- Proposal threshold to prevent spam
+- Voting period + quorum requirements
+
+**Flow**
+
+1. Token holder creates proposal
+2. Voting period (e.g., 7 days)
+3. If passed + quorum met → queued in Timelock
+4. After delay (e.g., 2 days) → executable by anyone
+
+### Bridging / Multi-chain
+
+Start on Ink, expand to other L2s without fragmenting liquidity or creator identity.
+
+**Why Multi-chain**
+
+- Readers on different chains
+- Gas cost varies
+- Some creators prefer specific chains
+- Redundancy
+
+**Architecture**
+
+**Option A: Canonical on Ink + Mirrors**
+
+- Ink is source of truth for creator registry
+- Other chains have read-only mirrors synced via bridge
+- Payments on any chain, bridged back to Ink for settlement
+- Creator withdraws from Ink only
+
+**Option B: Independent Deployments + Unified Identity**
+
+- Same contracts deployed per chain
+- Creator registers once, signature replayed cross-chain
+- Earnings tracked per chain
+- Creator withdraws per chain
+
+**Option C: Chain Abstraction**
+
+- Single interface for readers
+- Backend routes to cheapest/fastest chain
+- Settlement aggregated cross-chain
+- Most complex, best UX
+
+**Bridge Options**
+
+- Native L2 bridges (slow, secure)
+- LayerZero / Hyperlane (fast, more trust assumptions)
+- CCIP (Chainlink) - probably best fit given other Chainlink usage
+
+**What Gets Bridged**
+
+- Creator registration (Ink → other chains)
+- Payment settlement (other chains → Ink)
+- Governance votes (aggregate cross-chain)
+- $PINK token (omnichain fungible)
+
 # 🏗 Scaffold-ETH 2
 
 <h4 align="center">
