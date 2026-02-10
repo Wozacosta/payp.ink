@@ -141,6 +141,7 @@ Automated on-chain actions without manual triggers or centralized cron jobs.
 4. Platform funds LINK for automation gas
 
 ### DAO / Governance
+course here: https://updraft.cyfrin.io/courses/advanced-foundry
 
 Platform decisions controlled by token holders, not the team.
 
