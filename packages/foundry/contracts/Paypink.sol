@@ -67,6 +67,8 @@ contract Paypink {
 
     /* ----- ERRORS ----- */
     error WrongPrice(uint256 expected, uint256 actual);
+    error Article_SlugTaken();
+    error Article_DoesntExist();
 
     /**
      *
@@ -74,7 +76,9 @@ contract Paypink {
      */
     function registerArticle(string calldata slug, uint256 price, string calldata contentHash) external {
         bytes32 key = keccak256(abi.encodePacked(slug));
-        require(articles[key].creator == address(0), "slug taken");
+        if (articles[key].creator != address(0)) {
+            revert Article_SlugTaken();
+        }
         Article storage article = articles[key];
         article.slug = slug;
         article.creator = msg.sender; // NOTE: could be passed as arg?
@@ -86,6 +90,9 @@ contract Paypink {
     // Pay to read an article (99% to creator, 1% to platform)
     function payForArticle(string calldata slug) external payable {
         bytes32 key = keccak256(abi.encodePacked(slug));
+        if (articles[key].creator == address(0)) {
+            revert Article_DoesntExist();
+        }
         if (msg.value != articles[key].price) {
             revert WrongPrice(articles[key].price, msg.value);
         }
