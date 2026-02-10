@@ -24,7 +24,6 @@ contract PaypinkTest is Test {
 
     function test_RegisterArticle() public {
         vm.startPrank(author);
-        // string calldata slug, uint256 price, string calldata contentHash
         paypink.registerArticle("article-slug", 1, "contentHashed");
 
         Paypink.Article memory newArticle = paypink.getArticle("article-slug");
@@ -32,6 +31,13 @@ contract PaypinkTest is Test {
         assertEq(newArticle.price, 1);
         assertEq(newArticle.contentHash, "contentHashed");
         vm.stopPrank();
+    }
+
+    function test_RegisterArticle_SlugAlreadyTaken() public {
+        vm.startPrank(author);
+        paypink.registerArticle("article-slug", 1, "contentHashed");
+        vm.expectRevert(Paypink.Article_SlugTaken.selector);
+        paypink.registerArticle("article-slug", 1, "contentHashedBis");
     }
 
     function test_PayForArticle_minPriceError() public {
@@ -42,6 +48,13 @@ contract PaypinkTest is Test {
         vm.startPrank(reader);
         vm.expectRevert(abi.encodeWithSelector(Paypink.WrongPrice.selector, 1, 0));
         paypink.payForArticle("article-slug");
+        vm.stopPrank();
+    }
+
+    function test_PayForArticle_articleDoesntExistError() public {
+        vm.startPrank(reader);
+        vm.expectRevert(Paypink.Article_DoesntExist.selector);
+        paypink.payForArticle("article-slug-toto");
         vm.stopPrank();
     }
 
