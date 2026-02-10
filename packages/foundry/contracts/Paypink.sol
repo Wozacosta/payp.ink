@@ -44,12 +44,6 @@ import "forge-std/console.sol";
  */
 
 contract Paypink {
-    address public immutable owner;
-
-    constructor() {
-        owner = msg.sender;
-    }
-
     struct Article {
         string slug;
         address creator;
@@ -59,7 +53,20 @@ contract Paypink {
         uint256 earned;
     }
 
+    address public immutable owner;
+
     mapping(bytes32 slugHash => Article) articles;
+    mapping(bytes32 slugHash => mapping(address reader => bool paid)) public hasPaid;
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    /* ----- EVENTS ----- */
+    event ArticlePaid(bytes32 indexed key, address indexed reader, uint256 amount);
+
+    /* ----- ERRORS ----- */
+    error WrongPrice(uint256 expected, uint256 actual);
 
     /**
      *
@@ -77,7 +84,16 @@ contract Paypink {
     }
 
     // Pay to read an article (99% to creator, 1% to platform)
-    function payForArticle(string calldata slug) external payable {}
+    function payForArticle(string calldata slug) external payable {
+        bytes32 key = keccak256(abi.encodePacked(slug));
+        if (msg.value != articles[key].price) {
+            revert WrongPrice(articles[key].price, msg.value);
+        }
+        hasPaid[key][msg.sender] = true;
+        articles[key].views += 1;
+        articles[key].earned += msg.value;
+        emit ArticlePaid(key, msg.sender, msg.value);
+    }
 
     // Tip a creator via article slug (same 99/1 split)
     function tipBySlug(string calldata slug) external payable {}
