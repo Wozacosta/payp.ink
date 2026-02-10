@@ -9,6 +9,7 @@ import {console} from "forge-std/console.sol";
 contract PaypinkTest is Test {
     address deployer = makeAddr("deployer");
     address author = makeAddr("author");
+    address reader = makeAddr("reader");
 
     Paypink public paypink;
 
@@ -17,7 +18,7 @@ contract PaypinkTest is Test {
         paypink = new Paypink();
     }
 
-    function testCheckowner() public view {
+    function test_Checkowner() public view {
         assertEq(paypink.owner(), deployer);
     }
 
@@ -31,5 +32,31 @@ contract PaypinkTest is Test {
         assertEq(newArticle.price, 1);
         assertEq(newArticle.contentHash, "contentHashed");
         vm.stopPrank();
+    }
+
+    function test_PayForArticle_minPriceError() public {
+        vm.startPrank(author);
+        paypink.registerArticle("article-slug", 1, "contentHashed");
+        vm.stopPrank();
+
+        vm.startPrank(reader);
+        vm.expectRevert(abi.encodeWithSelector(Paypink.WrongPrice.selector, 1, 0));
+        paypink.payForArticle("article-slug");
+        vm.stopPrank();
+    }
+
+    function test_PayForArticle() public {
+        vm.startPrank(author);
+        paypink.registerArticle("article-slug", 1, "contentHashed");
+        vm.stopPrank();
+
+        vm.deal(reader, 1 ether);
+        vm.startPrank(reader);
+        paypink.payForArticle{value: 1}("article-slug");
+        vm.stopPrank();
+
+        Paypink.Article memory newArticle = paypink.getArticle("article-slug");
+        assertEq(newArticle.views, 1);
+        assertEq(newArticle.earned, 1);
     }
 }
