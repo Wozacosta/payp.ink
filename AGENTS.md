@@ -218,6 +218,34 @@ Make comments that add information. Avoid redundant JSDoc for simple functions.
 
 Use **Context7 MCP** tools to fetch up-to-date documentation for any library (Wagmi, Viem, RainbowKit, DaisyUI, Hardhat, Next.js, etc.). Context7 is configured as an MCP server and provides access to indexed documentation with code examples.
 
+## Commit Convention
+
+Follow this pattern for all commits:
+
+```
+type(scope): description
+```
+
+- **type**: `feat`, `fix`, `test`, `refactor`, `docs`, `chore`, `style`
+- **scope**: `package/target` — where `package` is `foundry` or `nextjs`, and `target` is the contract name or feature area
+- Omit `package` for repo-wide changes
+
+Examples:
+
+```
+feat(foundry/paypink): add registerArticle function
+test(foundry/paypink): register article with duplicate slug
+fix(foundry/paypink): 99/1 split rounding error
+feat(foundry/tip): add tipByAddress function
+
+feat(nextjs/article): build article reader page
+fix(nextjs/dashboard): creator earnings not updating
+style(nextjs/layout): adjust header spacing
+
+chore(foundry): update foundry.toml for ink rpc
+docs: update TODO with phase 1 progress
+```
+
 ## Specialized Agents
 
 Use these specialized agents for specific tasks:
