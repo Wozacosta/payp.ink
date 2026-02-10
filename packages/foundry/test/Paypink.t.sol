@@ -36,24 +36,24 @@ contract PaypinkTest is Test {
     function test_RegisterArticle_SlugAlreadyTaken() public {
         vm.startPrank(author);
         paypink.registerArticle("article-slug", 1, "contentHashed");
-        vm.expectRevert(Paypink.Article_SlugTaken.selector);
+        vm.expectRevert(Paypink.Paypink__SlugTaken.selector);
         paypink.registerArticle("article-slug", 1, "contentHashedBis");
     }
 
-    function test_PayForArticle_minPriceError() public {
+    function test_PayForArticle_WrongPrice() public {
         vm.startPrank(author);
         paypink.registerArticle("article-slug", 1, "contentHashed");
         vm.stopPrank();
 
         vm.startPrank(reader);
-        vm.expectRevert(abi.encodeWithSelector(Paypink.WrongPrice.selector, 1, 0));
+        vm.expectRevert(abi.encodeWithSelector(Paypink.Paypink__WrongPrice.selector, 1, 0));
         paypink.payForArticle("article-slug");
         vm.stopPrank();
     }
 
-    function test_PayForArticle_articleDoesntExistError() public {
+    function test_PayForArticle_ArticleNotFound() public {
         vm.startPrank(reader);
-        vm.expectRevert(Paypink.Article_DoesntExist.selector);
+        vm.expectRevert(Paypink.Paypink__ArticleNotFound.selector);
         paypink.payForArticle("article-slug-toto");
         vm.stopPrank();
     }

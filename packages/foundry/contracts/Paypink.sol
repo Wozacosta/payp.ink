@@ -66,9 +66,9 @@ contract Paypink {
     event ArticlePaid(bytes32 indexed key, address indexed reader, uint256 amount);
 
     /* ----- ERRORS ----- */
-    error WrongPrice(uint256 expected, uint256 actual);
-    error Article_SlugTaken();
-    error Article_DoesntExist();
+    error Paypink__WrongPrice(uint256 expected, uint256 actual);
+    error Paypink__SlugTaken();
+    error Paypink__ArticleNotFound();
 
     /**
      *
@@ -77,7 +77,7 @@ contract Paypink {
     function registerArticle(string calldata slug, uint256 price, string calldata contentHash) external {
         bytes32 key = keccak256(abi.encodePacked(slug));
         if (articles[key].creator != address(0)) {
-            revert Article_SlugTaken();
+            revert Paypink__SlugTaken();
         }
         Article storage article = articles[key];
         article.slug = slug;
@@ -91,10 +91,10 @@ contract Paypink {
     function payForArticle(string calldata slug) external payable {
         bytes32 key = keccak256(abi.encodePacked(slug));
         if (articles[key].creator == address(0)) {
-            revert Article_DoesntExist();
+            revert Paypink__ArticleNotFound();
         }
         if (msg.value != articles[key].price) {
-            revert WrongPrice(articles[key].price, msg.value);
+            revert Paypink__WrongPrice(articles[key].price, msg.value);
         }
         hasPaid[key][msg.sender] = true;
         articles[key].views += 1;
