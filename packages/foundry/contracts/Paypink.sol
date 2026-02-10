@@ -53,7 +53,7 @@ contract Paypink {
     struct Article {
         string slug;
         address creator;
-        uint256 price;
+        uint256 price; // NOTE: price in wei, in a next version, we would use chainlink and store price as usd here
         string contentHash;
         uint256 views;
         uint256 earned;
@@ -93,7 +93,10 @@ contract Paypink {
 
     // --- Views ---
 
-    function getArticle(string calldata slug) external view returns (Article memory) {}
+    function getArticle(string calldata slug) external view returns (Article memory) {
+        bytes32 key = keccak256(abi.encodePacked(slug));
+        return articles[key];
+    }
 
     function getCreatorArticles(address creator) external view returns (bytes32[] memory) {}
 

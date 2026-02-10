@@ -8,6 +8,7 @@ import {console} from "forge-std/console.sol";
 
 contract PaypinkTest is Test {
     address deployer = makeAddr("deployer");
+    address author = makeAddr("author");
 
     Paypink public paypink;
 
@@ -18,5 +19,17 @@ contract PaypinkTest is Test {
 
     function testCheckowner() public view {
         assertEq(paypink.owner(), deployer);
+    }
+
+    function test_RegisterArticle() public {
+        vm.startPrank(author);
+        // string calldata slug, uint256 price, string calldata contentHash
+        paypink.registerArticle("article-slug", 1, "contentHashed");
+
+        Paypink.Article memory newArticle = paypink.getArticle("article-slug");
+        assertEq(newArticle.slug, "article-slug");
+        assertEq(newArticle.price, 1);
+        assertEq(newArticle.contentHash, "contentHashed");
+        vm.stopPrank();
     }
 }
