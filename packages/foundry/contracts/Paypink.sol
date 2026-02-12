@@ -58,7 +58,7 @@ contract Paypink {
 
     mapping(bytes32 slugHash => Article) articles;
     mapping(bytes32 slugHash => mapping(address reader => bool paid)) public hasPaid;
-    mapping(address creator => uint256 balance) creatorBalances;
+    mapping(address creator => uint256 balance) public creatorBalances;
 
     constructor() {
         owner = msg.sender;
@@ -113,6 +113,13 @@ contract Paypink {
         hasPaid[key][msg.sender] = true;
         articles[key].views += 1;
         articles[key].earned += msg.value;
+
+        uint256 creatorShare = msg.value * 99 / 100;
+        console.log("Creator share:", creatorShare);
+        creatorBalances[articles[key].creator] += creatorShare;
+        console.log("msg.value:", msg.value);
+        uint256 platformShare = msg.value - creatorShare;
+        ownerBalance += platformShare;
         emit ArticlePaid(key, msg.sender, msg.value);
     }
 
