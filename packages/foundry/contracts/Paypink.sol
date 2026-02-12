@@ -64,6 +64,7 @@ contract Paypink {
 
     /* ----- EVENTS ----- */
     event ArticlePaid(bytes32 indexed key, address indexed reader, uint256 amount);
+    event ArticleRegistered(bytes32 indexed key, address indexed creator, string slug, uint256 price);
 
     /* ----- ERRORS ----- */
     error Paypink__WrongPrice(uint256 expected, uint256 actual);
@@ -85,6 +86,7 @@ contract Paypink {
         article.price = price;
         article.contentHash = contentHash;
         articles[key] = article;
+        emit ArticleRegistered(key, article.creator, article.slug, article.price);
     }
 
     // Pay to read an article (99% to creator, 1% to platform)
