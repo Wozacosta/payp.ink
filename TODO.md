@@ -12,6 +12,10 @@
 ## Phase 1 — Smart Contracts
 
 - [ ] Write `Paypink.sol` — article registry (slug, creator, price, contentHash, views, earned) + 99/1 payment split logic
+  - Uses "Pull over Push" pattern for the 99/1 split: balances are credited on payment, creators/platform withdraw separately.
+    This prevents a malicious creator contract from blocking readers.
+    Ref: https://fravoll.github.io/solidity-patterns/pull_over_push.html
+    Ref: https://docs.openzeppelin.com/contracts/4.x/api/security#PullPayment
 - [ ] Write unit tests for `Paypink.sol` (`forge test`)
 - [ ] Write `Tip.sol` — tipping by creator address or article slug, same 99/1 split
 - [ ] Write unit tests for `Tip.sol`
