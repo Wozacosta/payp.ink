@@ -24,9 +24,15 @@ contract PaypinkTest is Test {
 
     function test_RegisterArticle() public {
         vm.startPrank(author);
+
+        bytes32 expectedKey = keccak256(abi.encodePacked("article-slug"));
+        vm.expectEmit(address(paypink));
+        emit Paypink.ArticleRegistered(expectedKey, author, "article-slug", 1);
+
         paypink.registerArticle("article-slug", 1, "contentHashed");
 
         Paypink.Article memory newArticle = paypink.getArticle("article-slug");
+
         assertEq(newArticle.slug, "article-slug");
         assertEq(newArticle.price, 1);
         assertEq(newArticle.contentHash, "contentHashed");
