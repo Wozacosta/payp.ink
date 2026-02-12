@@ -39,7 +39,7 @@ jobs:
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
         run: |
-          yarn chain &
+          nohup yarn chain > /dev/null 2>&1 &
           while ! curl -sf http://127.0.0.1:8545 > /dev/null 2>&1; do sleep 1; done
           yarn deploy
 
