@@ -54,9 +54,11 @@ contract Paypink {
     }
 
     address public immutable owner;
+    uint256 public ownerBalance;
 
     mapping(bytes32 slugHash => Article) articles;
     mapping(bytes32 slugHash => mapping(address reader => bool paid)) public hasPaid;
+    mapping(address creator => uint256 balance) creatorBalances;
 
     constructor() {
         owner = msg.sender;
