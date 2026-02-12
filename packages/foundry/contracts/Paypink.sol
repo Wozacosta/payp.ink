@@ -69,6 +69,7 @@ contract Paypink {
     /* ----- ERRORS ----- */
     error Paypink__WrongPrice(uint256 expected, uint256 actual);
     error Paypink__SlugTaken();
+    error Paypink__AlreadyPaid();
     error Paypink__ArticleNotFound();
 
     /**
@@ -95,6 +96,10 @@ contract Paypink {
         if (articles[key].creator == address(0)) {
             revert Paypink__ArticleNotFound();
         }
+        if (hasPaid[key][msg.sender]) {
+            revert Paypink__AlreadyPaid();
+        }
+
         if (msg.value != articles[key].price) {
             revert Paypink__WrongPrice(articles[key].price, msg.value);
         }
