@@ -55,6 +55,7 @@ use https://attest.org/ / onchain identity (gitcoin / eas/ worldcoin?)
 make it upgradeable: https://updraft.cyfrin.io/courses/advanced-foundry
 add airdrop?: https://updraft.cyfrin.io/courses/advanced-foundry
 imagine a Farcaster Frame that lets someone pay for content via your Ink contracts.
+re-entrancy guard: https://solidity-by-example.org/hacks/re-entrancy/
 
 # Phase 6 - Chainlink
 

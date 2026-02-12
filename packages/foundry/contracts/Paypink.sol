@@ -73,6 +73,8 @@ contract Paypink {
     error Paypink__SlugTaken();
     error Paypink__AlreadyPaid();
     error Paypink__ArticleNotFound();
+    error Paypink__NothingToWithdraw();
+    error Paypink__Withdraw_FailedToSend();
 
     /**
      *
@@ -130,7 +132,22 @@ contract Paypink {
     function tipByAddress(address creator) external payable {}
 
     // Creator withdraws their earned balance
-    function withdraw() external {}
+    function withdraw() external {
+        // checks
+        uint256 valueToWithdraw = creatorBalances[msg.sender];
+        if (valueToWithdraw == 0) {
+            revert Paypink__NothingToWithdraw();
+        }
+
+        // effects
+        creatorBalances[msg.sender] = 0;
+
+        // interactions
+        (bool sent,) = msg.sender.call{value: valueToWithdraw}("");
+        if (!sent) {
+            revert Paypink__Withdraw_FailedToSend();
+        }
+    }
 
     // Platform owner withdraws platform fees
     function withdrawPlatformFees() external {}
