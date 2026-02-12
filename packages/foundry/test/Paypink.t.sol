@@ -25,7 +25,7 @@ contract PaypinkTest is Test {
         paypink = new Paypink();
     }
 
-    function test_Checkowner() public view {
+    function test_Checkowner() public {
         assertEq(paypink.owner(), deployer);
     }
 
