@@ -50,6 +50,7 @@ contract PaypinkTest is Test {
         vm.startPrank(author);
         vm.expectRevert(Paypink.Paypink__SlugTaken.selector);
         paypink.registerArticle("article-slug", 1, "contentHashedBis");
+        vm.stopPrank();
     }
 
     function test_PayForArticle_WrongPrice() public withArticle {
