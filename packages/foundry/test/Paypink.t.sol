@@ -15,7 +15,7 @@ contract PaypinkTest is Test {
 
     modifier withArticle() {
         vm.startPrank(author);
-        paypink.registerArticle("article-slug", 1, "contentHashed");
+        paypink.registerArticle("article-slug", 100, "contentHashed");
         vm.stopPrank();
         _;
     }
@@ -49,13 +49,13 @@ contract PaypinkTest is Test {
     function test_RegisterArticle_SlugAlreadyTaken() public withArticle {
         vm.startPrank(author);
         vm.expectRevert(Paypink.Paypink__SlugTaken.selector);
-        paypink.registerArticle("article-slug", 1, "contentHashedBis");
+        paypink.registerArticle("article-slug", 100, "contentHashedBis");
         vm.stopPrank();
     }
 
     function test_PayForArticle_WrongPrice() public withArticle {
         vm.startPrank(reader);
-        vm.expectRevert(abi.encodeWithSelector(Paypink.Paypink__WrongPrice.selector, 1, 0));
+        vm.expectRevert(abi.encodeWithSelector(Paypink.Paypink__WrongPrice.selector, 100, 0));
         paypink.payForArticle("article-slug");
         vm.stopPrank();
     }
@@ -70,13 +70,53 @@ contract PaypinkTest is Test {
     function test_PayForArticle() public withArticle {
         vm.deal(reader, 1 ether);
         vm.startPrank(reader);
-        paypink.payForArticle{value: 1}("article-slug");
+        paypink.payForArticle{value: 100}("article-slug");
 
         Paypink.Article memory newArticle = paypink.getArticle("article-slug");
         assertEq(newArticle.views, 1);
-        assertEq(newArticle.earned, 1);
+        assertEq(newArticle.earned, 100);
 
         assertEq(paypink.ownerBalance(), 1);
+        assertEq(paypink.creatorBalances(author), 99);
+    }
+
+    function test_Withdraw_NothingToWithdraw() public {
+        vm.prank(author);
+        vm.expectRevert(Paypink.Paypink__NothingToWithdraw.selector);
+        paypink.withdraw();
+    }
+
+    function test_Withdraw_SendsCorrectAmount() public withArticle {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.payForArticle{value: 100}("article-slug");
+
+        uint256 expectedPayout = paypink.creatorBalances(author);
+        uint256 balanceBefore = author.balance;
+        vm.prank(author);
+        paypink.withdraw();
+        assertEq(author.balance - balanceBefore, expectedPayout);
+    }
+
+    function test_Withdraw_ZerosBalance() public withArticle {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.payForArticle{value: 100}("article-slug");
+
+        vm.prank(author);
+        paypink.withdraw();
         assertEq(paypink.creatorBalances(author), 0);
+    }
+
+    function test_Withdraw_RevertsOnSecondCall() public withArticle {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.payForArticle{value: 100}("article-slug");
+
+        vm.startPrank(author);
+        paypink.withdraw();
+        vm.expectRevert(Paypink.Paypink__NothingToWithdraw.selector);
+        paypink.withdraw();
+        vm.stopPrank();
     }
 }

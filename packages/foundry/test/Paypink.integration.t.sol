@@ -20,12 +20,15 @@ contract PaypinkTest is Test {
 
     function test_RegisterArticle_PayForArticle_CreatorWithdraws() public {
         uint256 PRICE = 1000;
+
+        // --- Register article as author ---
         vm.startPrank(author);
         paypink.registerArticle("article-slug", PRICE, "contentHashed");
         assertEq(paypink.ownerBalance(), 0);
         assertEq(paypink.creatorBalances(author), 0);
         vm.stopPrank();
 
+        // --- Reader 1 pays for article ---
         vm.deal(reader, 1 ether);
         vm.startPrank(reader);
         paypink.payForArticle{value: PRICE}("article-slug");
@@ -34,9 +37,11 @@ contract PaypinkTest is Test {
         assertEq(newArticle.views, 1);
         assertEq(newArticle.earned, PRICE);
 
+        // --- Reader 1 tries to pay again (should revert) ---
         vm.expectRevert(Paypink.Paypink__AlreadyPaid.selector);
         paypink.payForArticle("article-slug");
 
+        // --- Verify 99/1 split after first payment ---
         console.log("Owner balance:", paypink.ownerBalance());
         console.log("Creator balance:", paypink.creatorBalances(author));
         assertEq(paypink.ownerBalance(), 10);
@@ -44,14 +49,26 @@ contract PaypinkTest is Test {
 
         vm.stopPrank();
 
+        // --- Reader 2 pays for the same article ---
         vm.deal(reader2, 1 ether);
         vm.startPrank(reader2);
         paypink.payForArticle{value: PRICE}("article-slug");
 
+        // --- Verify balances accumulated correctly ---
         console.log("Owner balance:", paypink.ownerBalance());
         console.log("Creator balance:", paypink.creatorBalances(author));
         assertEq(paypink.ownerBalance(), 20);
         assertEq(paypink.creatorBalances(author), 1980);
+
+        vm.stopPrank();
+
+        // --- Author withdraws his balance ---
+
+        uint256 balanceAuthor = paypink.creatorBalances(author);
+        vm.startPrank(author);
+        paypink.withdraw();
+        assertEq(author.balance, balanceAuthor);
+        assertEq(paypink.creatorBalances(author), 0);
 
         vm.stopPrank();
     }
