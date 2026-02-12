@@ -91,6 +91,11 @@ contract Paypink {
     }
 
     // Pay to read an article (99% to creator, 1% to platform)
+    // NOTE: Uses the "Pull over Push" pattern — balances are credited here, not transferred.
+    // Recipients call withdraw() / withdrawPlatformFees() to collect.
+    // This prevents a malicious/broken creator address from blocking payments.
+    // See: https://fravoll.github.io/solidity-patterns/pull_over_push.html
+    // See: https://docs.openzeppelin.com/contracts/4.x/api/security#PullPayment
     function payForArticle(string calldata slug) external payable {
         bytes32 key = keccak256(abi.encodePacked(slug));
         if (articles[key].creator == address(0)) {

@@ -18,7 +18,7 @@ Multi-creator micropaid articles via x402 on Ink. On-chain tracking, instant pay
 
 **Paypink.sol**
 - Register article (slug, creator, price, content hash)
-- Record payment → immediate 99/1 split
+- Record payment → 99/1 split using [Pull over Push](https://fravoll.github.io/solidity-patterns/pull_over_push.html) pattern (balances credited on payment, creators/platform withdraw separately). This prevents a malicious creator contract from blocking readers. See also [OpenZeppelin PullPayment](https://docs.openzeppelin.com/contracts/4.x/api/security#PullPayment).
 - Track views and earned per article
 
 **Tip.sol**
