@@ -13,6 +13,13 @@ contract PaypinkTest is Test {
 
     Paypink public paypink;
 
+    modifier withArticle() {
+        vm.startPrank(author);
+        paypink.registerArticle("article-slug", 1, "contentHashed");
+        vm.stopPrank();
+        _;
+    }
+
     function setUp() public {
         vm.prank(deployer);
         paypink = new Paypink();
@@ -39,18 +46,13 @@ contract PaypinkTest is Test {
         vm.stopPrank();
     }
 
-    function test_RegisterArticle_SlugAlreadyTaken() public {
+    function test_RegisterArticle_SlugAlreadyTaken() public withArticle {
         vm.startPrank(author);
-        paypink.registerArticle("article-slug", 1, "contentHashed");
         vm.expectRevert(Paypink.Paypink__SlugTaken.selector);
         paypink.registerArticle("article-slug", 1, "contentHashedBis");
     }
 
-    function test_PayForArticle_WrongPrice() public {
-        vm.startPrank(author);
-        paypink.registerArticle("article-slug", 1, "contentHashed");
-        vm.stopPrank();
-
+    function test_PayForArticle_WrongPrice() public withArticle {
         vm.startPrank(reader);
         vm.expectRevert(abi.encodeWithSelector(Paypink.Paypink__WrongPrice.selector, 1, 0));
         paypink.payForArticle("article-slug");
@@ -64,18 +66,17 @@ contract PaypinkTest is Test {
         vm.stopPrank();
     }
 
-    function test_PayForArticle() public {
-        vm.startPrank(author);
-        paypink.registerArticle("article-slug", 1, "contentHashed");
-        vm.stopPrank();
-
+    function test_PayForArticle() public withArticle {
         vm.deal(reader, 1 ether);
         vm.startPrank(reader);
         paypink.payForArticle{value: 1}("article-slug");
-        vm.stopPrank();
 
         Paypink.Article memory newArticle = paypink.getArticle("article-slug");
         assertEq(newArticle.views, 1);
         assertEq(newArticle.earned, 1);
+
+        vm.expectRevert(Paypink.Paypink__AlreadyPaid.selector);
+        paypink.payForArticle("article-slug");
+        vm.stopPrank();
     }
 }
