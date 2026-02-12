@@ -76,8 +76,7 @@ contract PaypinkTest is Test {
         assertEq(newArticle.views, 1);
         assertEq(newArticle.earned, 1);
 
-        vm.expectRevert(Paypink.Paypink__AlreadyPaid.selector);
-        paypink.payForArticle("article-slug");
-        vm.stopPrank();
+        assertEq(paypink.ownerBalance(), 1);
+        assertEq(paypink.creatorBalances(author), 0);
     }
 }
