@@ -233,4 +233,56 @@ contract PaypinkTest is Test {
         emit Paypink.CreatorTipped(author, 500);
         paypink.tipByAddress{value: 500}(author);
     }
+
+    // --- withdrawPlatformFees ---
+
+    function test_WithdrawPlatformFees_NothingToWithdraw() public {
+        vm.prank(deployer);
+        vm.expectRevert(Paypink.Paypink__NothingToWithdraw.selector);
+        paypink.withdrawPlatformFees();
+    }
+
+    function test_WithdrawPlatformFees_OnlyOwner() public withArticle {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.payForArticle{value: 100}("article-slug");
+
+        vm.prank(author);
+        vm.expectRevert(Paypink.Paypink__OwnerOnly.selector);
+        paypink.withdrawPlatformFees();
+    }
+
+    function test_WithdrawPlatformFees_SendsCorrectAmount() public withArticle {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.payForArticle{value: 100}("article-slug");
+
+        uint256 expectedPayout = paypink.ownerBalance();
+        uint256 balanceBefore = deployer.balance;
+        vm.prank(deployer);
+        paypink.withdrawPlatformFees();
+        assertEq(deployer.balance - balanceBefore, expectedPayout);
+    }
+
+    function test_WithdrawPlatformFees_ZerosBalance() public withArticle {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.payForArticle{value: 100}("article-slug");
+
+        vm.prank(deployer);
+        paypink.withdrawPlatformFees();
+        assertEq(paypink.ownerBalance(), 0);
+    }
+
+    function test_WithdrawPlatformFees_RevertsOnSecondCall() public withArticle {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.payForArticle{value: 100}("article-slug");
+
+        vm.startPrank(deployer);
+        paypink.withdrawPlatformFees();
+        vm.expectRevert(Paypink.Paypink__NothingToWithdraw.selector);
+        paypink.withdrawPlatformFees();
+        vm.stopPrank();
+    }
 }
