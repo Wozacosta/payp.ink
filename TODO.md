@@ -35,30 +35,29 @@ Ref: https://www.x402.org/writing/x402-v2-launch
 
 ### Contract changes
 
-- [ ] Add ERC-20 token whitelist — `mapping(address => bool) whitelistedTokens`, owner can add/remove via `addWhitelistedToken()` / `removeWhitelistedToken()`
+- [ ] Add single payment token — `address public paymentToken`, set in constructor (USDC on Ink). Owner can update via `setPaymentToken()`. V2: generalize to a multi-token whitelist.
 - [ ] Add authorized x402 caller — `address public authorizedX402Caller`, changeable by owner via `setAuthorizedX402Caller()`
-- [ ] Add ERC-20 balance tracking — `mapping(address token => uint256) totalRecorded` to track how many tokens have been accounted for
-- [ ] Add per-creator per-token balances — `mapping(address creator => mapping(address token => uint256)) creatorTokenBalances`
-- [ ] Add platform per-token balances — `mapping(address token => uint256) platformTokenBalances`
-- [ ] Implement `recordX402Payment(string slug, address reader, address token, uint256 amount)`:
+- [ ] Add ERC-20 balance tracking — `uint256 public totalRecorded` to track how many tokens have been accounted for
+- [ ] Add per-creator token balances — `mapping(address creator => uint256) creatorTokenBalances`
+- [ ] Add platform token balance — `uint256 public platformTokenBalance`
+- [ ] Implement `recordX402Payment(string slug, address reader, uint256 amount)`:
   - Restricted to `authorizedX402Caller` only
-  - Verify `token` is whitelisted
-  - Balance check: `IERC20(token).balanceOf(address(this)) - totalRecorded[token] >= amount`
+  - Balance check: `IERC20(paymentToken).balanceOf(address(this)) - totalRecorded >= amount`
   - Set `hasPaid[slugHash][reader] = true` (revert if already paid)
   - Increment `article.views` and `article.earned`
-  - Credit 99/1 split to `creatorTokenBalances` and `platformTokenBalances`
-  - Update `totalRecorded[token] += amount`
+  - Credit 99/1 split to `creatorTokenBalances` and `platformTokenBalance`
+  - Update `totalRecorded += amount`
   - Emit `X402PaymentRecorded` event
-- [ ] Implement `withdrawTokens(address token)` — creator withdraws accumulated ERC-20 earnings (pull pattern, same as ETH `withdraw()`)
-- [ ] Implement `withdrawPlatformTokenFees(address token)` — owner withdraws platform's ERC-20 share
-- [ ] Add new errors: `Paypink__TokenNotWhitelisted`, `Paypink__UnauthorizedCaller`, `Paypink__InsufficientTokenBalance`
-- [ ] Add new events: `X402PaymentRecorded`, `TokenWhitelisted`, `TokenDelisted`, `AuthorizedCallerUpdated`
+- [ ] Implement `withdrawTokens()` — creator withdraws accumulated ERC-20 earnings (pull pattern, same as ETH `withdraw()`)
+- [ ] Implement `withdrawPlatformTokenFees()` — owner withdraws platform's ERC-20 share
+- [ ] Add new errors: `Paypink__UnauthorizedCaller`, `Paypink__InsufficientTokenBalance`
+- [ ] Add new events: `X402PaymentRecorded`, `PaymentTokenUpdated`, `AuthorizedCallerUpdated`
 
 ### Tests
 
-- [ ] Unit tests for `recordX402Payment` — happy path, unauthorized caller, non-whitelisted token, insufficient balance, already paid, article not found
+- [ ] Unit tests for `recordX402Payment` — happy path, unauthorized caller, insufficient balance, already paid, article not found
 - [ ] Unit tests for ERC-20 withdrawals — creator and platform, zero balance, correct amounts
-- [ ] Unit tests for admin functions — add/remove whitelisted tokens, set authorized caller, access control
+- [ ] Unit tests for admin functions — set payment token, set authorized caller, access control
 - [ ] Integration test: simulate full x402 flow — transfer ERC-20 to contract, call `recordX402Payment`, verify state, withdraw
 - [ ] Update deploy script if needed
 
@@ -122,8 +121,8 @@ Articles are immutable after publishing — no editing the body once registered 
 ### Creator Dashboard
 
 - [ ] List all creator's articles — merge on-chain data (views, earned, price) with off-chain data (title, status, createdAt) from DB
-- [ ] Show total earnings — ETH balance (from `getCreatorBalance`) + ERC-20 balances (from `creatorTokenBalances`) displayed separately
-- [ ] Withdraw buttons — one for ETH (`withdraw()`), one per ERC-20 token (`withdrawTokens(token)`)
+- [ ] Show total earnings — ETH balance (from `getCreatorBalance`) + token balance (from `creatorTokenBalances`) displayed separately
+- [ ] Withdraw buttons — one for ETH (`withdraw()`), one for payment token (`withdrawTokens()`)
 
 ### Article discovery
 
