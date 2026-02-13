@@ -138,4 +138,99 @@ contract PaypinkTest is Test {
         paypink.withdraw();
         vm.stopPrank();
     }
+
+    // --- tipBySlug ---
+
+    function test_TipBySlug() public withArticle {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.tipBySlug{value: 1000}("article-slug");
+
+        assertEq(paypink.creatorBalances(author), 990);
+        assertEq(paypink.ownerBalance(), 10);
+
+        Paypink.Article memory article = paypink.getArticle("article-slug");
+        assertEq(article.earned, 1000);
+        // tips should not increment views
+        assertEq(article.views, 0);
+    }
+
+    function test_TipBySlug_ArticleNotFound() public {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        vm.expectRevert(Paypink.Paypink__ArticleNotFound.selector);
+        paypink.tipBySlug{value: 100}("nonexistent");
+    }
+
+    function test_TipBySlug_MultipleTips() public withArticle {
+        vm.deal(reader, 1 ether);
+        vm.startPrank(reader);
+        paypink.tipBySlug{value: 1000}("article-slug");
+        paypink.tipBySlug{value: 1000}("article-slug");
+        vm.stopPrank();
+
+        assertEq(paypink.creatorBalances(author), 1980);
+        assertEq(paypink.ownerBalance(), 20);
+
+        Paypink.Article memory article = paypink.getArticle("article-slug");
+        assertEq(article.earned, 2000);
+    }
+
+    function test_TipBySlug_SmallAmount() public withArticle {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.tipBySlug{value: 1}("article-slug");
+
+        // same rounding behavior as payForArticle: creator gets full amount
+        assertEq(paypink.creatorBalances(author), 1);
+        assertEq(paypink.ownerBalance(), 0);
+    }
+
+    function test_TipBySlug_EmitsEvent() public withArticle {
+        bytes32 expectedKey = keccak256(abi.encodePacked("article-slug"));
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        vm.expectEmit(address(paypink));
+        emit Paypink.ArticleTipped(expectedKey, author, "article-slug", 500);
+        paypink.tipBySlug{value: 500}("article-slug");
+    }
+
+    // --- tipByAddress ---
+
+    function test_TipByAddress() public {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.tipByAddress{value: 1000}(author);
+
+        assertEq(paypink.creatorBalances(author), 990);
+        assertEq(paypink.ownerBalance(), 10);
+    }
+
+    function test_TipByAddress_MultipleTips() public {
+        vm.deal(reader, 1 ether);
+        vm.startPrank(reader);
+        paypink.tipByAddress{value: 1000}(author);
+        paypink.tipByAddress{value: 1000}(author);
+        vm.stopPrank();
+
+        assertEq(paypink.creatorBalances(author), 1980);
+        assertEq(paypink.ownerBalance(), 20);
+    }
+
+    function test_TipByAddress_SmallAmount() public {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.tipByAddress{value: 1}(author);
+
+        assertEq(paypink.creatorBalances(author), 1);
+        assertEq(paypink.ownerBalance(), 0);
+    }
+
+    function test_TipByAddress_EmitsEvent() public {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        vm.expectEmit(address(paypink));
+        emit Paypink.CreatorTipped(author, 500);
+        paypink.tipByAddress{value: 500}(author);
+    }
 }

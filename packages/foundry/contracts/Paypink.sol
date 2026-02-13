@@ -67,6 +67,8 @@ contract Paypink {
     /* ----- EVENTS ----- */
     event ArticlePaid(bytes32 indexed key, address indexed reader, uint256 amount);
     event ArticleRegistered(bytes32 indexed key, address indexed creator, string slug, uint256 price);
+    event ArticleTipped(bytes32 indexed key, address indexed creator, string slug, uint256 tip);
+    event CreatorTipped(address indexed creator, uint256 tip);
 
     /* ----- ERRORS ----- */
     error Paypink__WrongPrice(uint256 expected, uint256 actual);
@@ -130,20 +132,35 @@ contract Paypink {
         articles[key].views += 1;
         articles[key].earned += msg.value;
 
-        uint256 platformShare = msg.value * 1 / 100;
-        console.log("Platform share:", platformShare);
-        uint256 creatorShare = msg.value - platformShare;
-        creatorBalances[articles[key].creator] += creatorShare;
-        console.log("msg.value:", msg.value);
-        ownerBalance += platformShare;
+        address creator = articles[key].creator;
+        _splitPayment(msg.value, creator);
         emit ArticlePaid(key, msg.sender, msg.value);
     }
 
     // Tip a creator via article slug (same 99/1 split)
-    function tipBySlug(string calldata slug) external payable {}
+    function tipBySlug(string calldata slug) external payable {
+        bytes32 key = keccak256(abi.encodePacked(slug));
+        if (articles[key].creator == address(0)) {
+            revert Paypink__ArticleNotFound();
+        }
+        articles[key].earned += msg.value;
+        address creator = articles[key].creator;
+        _splitPayment(msg.value, creator);
+        emit ArticleTipped(key, creator, slug, msg.value);
+    }
 
     // Tip a creator directly by address (same 99/1 split)
-    function tipByAddress(address creator) external payable {}
+    function tipByAddress(address creator) external payable {
+        _splitPayment(msg.value, creator);
+        emit CreatorTipped(creator, msg.value);
+    }
+
+    function _splitPayment(uint256 amount, address creator) internal {
+        uint256 platformShare = amount * 1 / 100;
+        uint256 creatorShare = amount - platformShare;
+        creatorBalances[creator] += creatorShare;
+        ownerBalance += platformShare;
+    }
 
     // Creator withdraws their earned balance
     function withdraw() external {
