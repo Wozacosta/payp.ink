@@ -57,6 +57,7 @@ contract Paypink {
     uint256 public ownerBalance;
 
     mapping(bytes32 slugHash => Article) articles;
+    mapping(address creator => bytes32[] slugHashes) creatorArticles;
     mapping(bytes32 slugHash => mapping(address reader => bool paid)) public hasPaid;
     mapping(address creator => uint256 balance) public creatorBalances;
 
@@ -101,6 +102,7 @@ contract Paypink {
         article.price = price;
         article.contentHash = contentHash;
         articles[key] = article;
+        creatorArticles[msg.sender].push(key);
         emit ArticleRegistered(key, article.creator, article.slug, article.price);
     }
 
@@ -200,7 +202,11 @@ contract Paypink {
         return articles[key];
     }
 
-    function getCreatorArticles(address creator) external view returns (bytes32[] memory) {}
+    function getCreatorArticles(address creator) external view returns (bytes32[] memory) {
+        return creatorArticles[creator];
+    }
 
-    function getCreatorBalance(address creator) external view returns (uint256) {}
+    function getCreatorBalance(address creator) external view returns (uint256) {
+        return creatorBalances[creator];
+    }
 }
