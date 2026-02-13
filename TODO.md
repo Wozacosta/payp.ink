@@ -90,10 +90,10 @@ Articles are immutable after publishing — no editing the body once registered 
 
 ### x402 content route
 
-- [ ] Build `GET /api/articles/[slug]/x402` — gated by thirdweb x402 middleware (`settlePayment`). `payTo` = Paypink contract address. After settlement, call `recordX402Payment()` via server wallet.
-- [ ] Install thirdweb x402 server SDK (`@x402/server` or equivalent)
-- [ ] Configure thirdweb facilitator with server wallet address
-- [ ] Add `THIRDWEB_SECRET_KEY` and `SERVER_WALLET_PRIVATE_KEY` to `.env`
+- [x] Build `GET /api/articles/[slug]/x402` — gated by x402 middleware (`withX402` from `x402-next`). `payTo` = Paypink contract address. After settlement, decodes `X-PAYMENT` header for payer address/amount, calls `recordX402Payment()` via server wallet. Dynamic pricing reads article price from on-chain.
+- [x] Install x402 server SDK — using `x402-next` (Coinbase) instead of thirdweb. Uses public facilitator for testnet, no API key needed.
+- [x] Configure server wallet — lazy-initialized `WalletClient` from `SERVER_WALLET_PRIVATE_KEY`. Must be set as `authorizedX402Caller` on the Paypink contract.
+- [x] Add `SERVER_WALLET_PRIVATE_KEY` to `.env` (no `THIRDWEB_SECRET_KEY` needed with `x402-next`)
 
 ### Client-side utilities
 
@@ -144,7 +144,8 @@ Articles are immutable after publishing — no editing the body once registered 
 - [ ] Test on Ink Sepolia testnet (or Sepolia if no Ink testnet available)
 - [ ] Deploy contracts to Ink mainnet
 - [ ] Deploy frontend to Vercel
-- [ ] Wire up production env vars: RPC URLs, contract addresses, `DATABASE_URL`, `THIRDWEB_SECRET_KEY`, `SERVER_WALLET_PRIVATE_KEY`
+- [ ] Wire up production env vars: RPC URLs, contract addresses, `DATABASE_URL`
+- [ ] Replace raw `SERVER_WALLET_PRIVATE_KEY` with proper key management (AWS KMS, GCP KMS, Thirdweb Engine, or Coinbase CDP managed wallets). Raw private key in env is OK for local Anvil dev only — never for production.
 - [ ] Environment strategy: separate `.env.local` / `.env.production` for Anvil vs Ink Sepolia vs Ink mainnet (different contract addresses, DB URLs, RPC endpoints)
 
 ## Phase 5 — Future Enhancements
