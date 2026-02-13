@@ -42,8 +42,18 @@ const CreateArticle: NextPage = () => {
   const isFormValid = title.trim().length > 0 && isSlugValid && body.trim().length > 0;
   const isBusy = flowStatus !== "idle" && flowStatus !== "published";
 
+  const clearRetryState = () => {
+    if (retryFrom) {
+      setSavedSlug("");
+      setSavedContentHash("");
+      setRetryFrom(null);
+      setError("");
+    }
+  };
+
   const handleSlugChange = (value: string) => {
     setSlug(value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
+    clearRetryState();
   };
 
   const handleFlowError = (e: unknown, step: FlowStep) => {
@@ -251,7 +261,10 @@ const CreateArticle: NextPage = () => {
               className="input w-full"
               placeholder="My Article Title"
               value={title}
-              onChange={e => setTitle(e.target.value)}
+              onChange={e => {
+                setTitle(e.target.value);
+                clearRetryState();
+              }}
               disabled={isBusy}
             />
           </fieldset>
@@ -281,7 +294,10 @@ const CreateArticle: NextPage = () => {
             <EtherInput
               key={formKey}
               placeholder="0 (free)"
-              onValueChange={({ valueInEth }) => setPrice(valueInEth)}
+              onValueChange={({ valueInEth }) => {
+                setPrice(valueInEth);
+                clearRetryState();
+              }}
               disabled={isBusy}
             />
           </fieldset>
@@ -293,7 +309,10 @@ const CreateArticle: NextPage = () => {
               className="w-full h-96 rounded-lg border border-base-content/20 bg-base-100 p-3 font-mono text-sm focus:outline-none focus:border-base-content"
               placeholder={"# Your Article\n\nWrite your content in **markdown**..."}
               value={body}
-              onChange={e => setBody(e.target.value)}
+              onChange={e => {
+                setBody(e.target.value);
+                clearRetryState();
+              }}
               disabled={isBusy}
             />
           </fieldset>
