@@ -97,8 +97,8 @@ Articles are immutable after publishing — no editing the body once registered 
 
 ### Client-side utilities
 
-- [ ] Build utility to compute `keccak256` of article body (use viem's `keccak256` + `toHex`) for on-chain registration
-- [ ] Build utility to verify content integrity — hash the served content, compare to on-chain `contentHash`. Define UX for mismatch (show warning banner, don't block)
+- [x] Build utility to compute `keccak256` of article body (use viem's `keccak256` + `toHex`) for on-chain registration
+- [x] Build utility to verify content integrity — hash the served content, compare to on-chain `contentHash`. Define UX for mismatch (show warning banner, don't block)
 
 ## Phase 3 — Frontend (Next.js)
 
