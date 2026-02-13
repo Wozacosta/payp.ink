@@ -139,6 +139,24 @@ contract PaypinkTest is Test {
         vm.stopPrank();
     }
 
+    function test_PayForArticle_AlreadyPaid() public withArticle {
+        vm.deal(reader, 1 ether);
+        vm.startPrank(reader);
+        paypink.payForArticle{value: 100}("article-slug");
+        vm.expectRevert(Paypink.Paypink__AlreadyPaid.selector);
+        paypink.payForArticle{value: 100}("article-slug");
+        vm.stopPrank();
+    }
+
+    function test_PayForArticle_EmitsEvent() public withArticle {
+        bytes32 expectedKey = keccak256(abi.encodePacked("article-slug"));
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        vm.expectEmit(address(paypink));
+        emit Paypink.ArticlePaid(expectedKey, reader, 100);
+        paypink.payForArticle{value: 100}("article-slug");
+    }
+
     // --- tipBySlug ---
 
     function test_TipBySlug() public withArticle {
@@ -293,5 +311,101 @@ contract PaypinkTest is Test {
         vm.prank(reader);
         vm.expectRevert(Paypink.Paypink__InvalidAddress.selector);
         paypink.tipByAddress{value: 1000}(address(0));
+    }
+
+    // --- view helpers ---
+
+    function test_GetCreatorArticles_ReturnsSlugHashes() public {
+        vm.startPrank(author);
+        paypink.registerArticle("first-article", 100, "hash1");
+        paypink.registerArticle("second-article", 200, "hash2");
+        vm.stopPrank();
+
+        bytes32[] memory slugHashes = paypink.getCreatorArticles(author);
+        assertEq(slugHashes.length, 2);
+        assertEq(slugHashes[0], keccak256(abi.encodePacked("first-article")));
+        assertEq(slugHashes[1], keccak256(abi.encodePacked("second-article")));
+    }
+
+    function test_GetCreatorArticles_EmptyForUnknownCreator() public view {
+        bytes32[] memory slugHashes = paypink.getCreatorArticles(address(0xdead));
+        assertEq(slugHashes.length, 0);
+    }
+
+    function test_GetCreatorBalance() public withArticle {
+        assertEq(paypink.getCreatorBalance(author), 0);
+
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.payForArticle{value: 100}("article-slug");
+
+        assertEq(paypink.getCreatorBalance(author), 99);
+    }
+
+    // --- zero-value tips ---
+
+    function test_TipBySlug_ZeroValue() public withArticle {
+        vm.prank(reader);
+        paypink.tipBySlug{value: 0}("article-slug");
+
+        assertEq(paypink.creatorBalances(author), 0);
+        assertEq(paypink.ownerBalance(), 0);
+
+        Paypink.Article memory article = paypink.getArticle("article-slug");
+        assertEq(article.earned, 0);
+    }
+
+    function test_TipByAddress_ZeroValue() public {
+        vm.prank(reader);
+        paypink.tipByAddress{value: 0}(author);
+
+        assertEq(paypink.creatorBalances(author), 0);
+        assertEq(paypink.ownerBalance(), 0);
+    }
+
+    // --- reentrancy ---
+
+    function test_Withdraw_ReentrancyResistance() public withArticle {
+        ReentrancyAttacker attacker = new ReentrancyAttacker(paypink);
+
+        // Register an article as the attacker so it becomes a creator
+        vm.prank(address(attacker));
+        paypink.registerArticle("attacker-article", 100, "hash");
+
+        // Reader pays for attacker's article
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        paypink.payForArticle{value: 100}("attacker-article");
+
+        // Attacker tries to re-enter on withdraw — should get NothingToWithdraw on re-entry
+        vm.prank(address(attacker));
+        attacker.attack();
+
+        // Attacker should only have received the payout once (99 wei)
+        assertEq(address(attacker).balance, 99);
+        assertEq(paypink.creatorBalances(address(attacker)), 0);
+    }
+}
+
+/// @dev Helper contract that attempts reentrancy on withdraw().
+contract ReentrancyAttacker {
+    Paypink private target;
+    uint256 private attackCount;
+
+    constructor(Paypink _target) {
+        target = _target;
+    }
+
+    function attack() external {
+        attackCount = 0;
+        target.withdraw();
+    }
+
+    receive() external payable {
+        attackCount++;
+        if (attackCount < 3) {
+            // Try to re-enter — should revert with NothingToWithdraw because balance is zeroed
+            try target.withdraw() {} catch {}
+        }
     }
 }
