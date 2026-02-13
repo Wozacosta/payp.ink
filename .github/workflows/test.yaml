@@ -26,3 +26,23 @@ jobs:
       - name: Run forge tests
         working-directory: packages/foundry
         run: forge test -vvv
+
+      - name: Run forge coverage
+        working-directory: packages/foundry
+        run: forge coverage
+
+      - name: Generate LCOV report
+        working-directory: packages/foundry
+        run: forge coverage --report lcov
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lcov-report
+          path: packages/foundry/lcov.info
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: packages/foundry/lcov.info
