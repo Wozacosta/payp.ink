@@ -7,9 +7,9 @@
 - [x] Verify the dev environment works: `yarn chain`, `yarn deploy`, `yarn start`
 - [x] Update `foundry.toml` to target Ink L2 (add Ink RPC + chain ID)
 - [x] Add Ink to the Scaffold-ETH network config (`scaffold.config.ts`)
-- [ ] Set up `.env` files for deployer private key, Ink RPC URL, IPFS/Arweave API keys
+- [ ] Set up `.env` files for deployer private key, Ink RPC URL
 
-## Phase 1 — Smart Contracts
+## Phase 1 — Smart Contracts (ETH payments)
 
 - [x] Write `Paypink.sol` — article registry (slug, creator, price, contentHash, views, earned) + 99/1 payment split logic
   - Uses "Pull over Push" pattern for the 99/1 split: balances are credited on payment, creators/platform withdraw separately.
@@ -22,73 +22,162 @@
 - [x] Write the deploy script (`Deploy.s.sol` or Scaffold-ETH deploy script)
 - [x] Deploy to local Anvil chain and smoke-test via Scaffold-ETH debug UI
 
+## Phase 1.5 — Enhance Paypink.sol for Dual Payment Rails (ETH + ERC-20 via x402)
+
+Decision: Two payment paths, single source of truth. Readers can pay via on-chain `payForArticle()` (ETH) or via x402 protocol (ERC-20 stablecoins). Both paths converge on the same `Paypink.sol` contract state — `hasPaid`, `views`, `earned`, and creator/platform balances are unified.
+
+x402 settlement: thirdweb's x402 facilitator transfers ERC-20 tokens directly to `Paypink.sol` (the `payTo` address). After settlement, the backend calls `recordX402Payment()` to record the payment on-chain. A balance check (`token.balanceOf(this) - totalRecorded[token] >= amount`) prevents fake recordings.
+
+Articles are immutable after on-chain registration (no `updateContentHash`). If a creator wants to change content, they register a new article with a new slug. V2: add `updateContentHash(slug, newHash)` (creator-only) to support editing.
+
+Ref: https://portal.thirdweb.com/x402
+Ref: https://www.x402.org/writing/x402-v2-launch
+
+### Contract changes
+
+- [ ] Add ERC-20 token whitelist — `mapping(address => bool) whitelistedTokens`, owner can add/remove via `addWhitelistedToken()` / `removeWhitelistedToken()`
+- [ ] Add authorized x402 caller — `address public authorizedX402Caller`, changeable by owner via `setAuthorizedX402Caller()`
+- [ ] Add ERC-20 balance tracking — `mapping(address token => uint256) totalRecorded` to track how many tokens have been accounted for
+- [ ] Add per-creator per-token balances — `mapping(address creator => mapping(address token => uint256)) creatorTokenBalances`
+- [ ] Add platform per-token balances — `mapping(address token => uint256) platformTokenBalances`
+- [ ] Implement `recordX402Payment(string slug, address reader, address token, uint256 amount)`:
+  - Restricted to `authorizedX402Caller` only
+  - Verify `token` is whitelisted
+  - Balance check: `IERC20(token).balanceOf(address(this)) - totalRecorded[token] >= amount`
+  - Set `hasPaid[slugHash][reader] = true` (revert if already paid)
+  - Increment `article.views` and `article.earned`
+  - Credit 99/1 split to `creatorTokenBalances` and `platformTokenBalances`
+  - Update `totalRecorded[token] += amount`
+  - Emit `X402PaymentRecorded` event
+- [ ] Implement `withdrawTokens(address token)` — creator withdraws accumulated ERC-20 earnings (pull pattern, same as ETH `withdraw()`)
+- [ ] Implement `withdrawPlatformTokenFees(address token)` — owner withdraws platform's ERC-20 share
+- [ ] Add new errors: `Paypink__TokenNotWhitelisted`, `Paypink__UnauthorizedCaller`, `Paypink__InsufficientTokenBalance`
+- [ ] Add new events: `X402PaymentRecorded`, `TokenWhitelisted`, `TokenDelisted`, `AuthorizedCallerUpdated`
+
+### Tests
+
+- [ ] Unit tests for `recordX402Payment` — happy path, unauthorized caller, non-whitelisted token, insufficient balance, already paid, article not found
+- [ ] Unit tests for ERC-20 withdrawals — creator and platform, zero balance, correct amounts
+- [ ] Unit tests for admin functions — add/remove whitelisted tokens, set authorized caller, access control
+- [ ] Integration test: simulate full x402 flow — transfer ERC-20 to contract, call `recordX402Payment`, verify state, withdraw
+- [ ] Update deploy script if needed
+
 ## Phase 2 — Storage & Content Integrity
 
 Decision: Article body stored in Postgres (Supabase). `contentHash` on-chain is `keccak256(body)` — purely an integrity proof, not a retrieval pointer.
-Paid content served by x402 API route from DB. IPFS/Pinata deferred to a future version for decentralized permanence.
+IPFS/Pinata deferred to a future version for decentralized permanence.
 Stack: Drizzle ORM + `postgres` driver + Supabase connection string (same DB for local dev and prod, swap URL in `.env`).
+
+Articles are immutable after publishing — no editing the body once registered on-chain.
+
+### Database setup
 
 - [ ] Create Supabase project, get connection string (pooler / direct URL)
 - [ ] Add `DATABASE_URL` to `.env` (and `.env.example` with placeholder)
 - [ ] Install `drizzle-orm`, `drizzle-kit`, `postgres` in `packages/nextjs`
-- [ ] Define Drizzle schema — articles table: `slug (PK), title, body, createdAt`
+- [ ] Define Drizzle schema — articles table: `slug (PK), title, body, creatorAddress, status (draft/published), createdAt, updatedAt`
 - [ ] Generate and run initial migration with `drizzle-kit`
-- [ ] Build Next.js API route (`/api/articles`) — stores article body in DB, returns `keccak256(body)` as content hash
-- [ ] Build client-side utility to compute `keccak256` of article body (use viem's `keccak256` + `toHex`) for on-chain registration
-- [ ] Build client-side utility to verify content integrity — hash the served content, compare to on-chain `contentHash`
+
+### API routes
+
+- [ ] Build `POST /api/articles` — authenticated via SIWE (Sign-In with Ethereum). Stores article as `draft` in DB, returns `keccak256(body)` as content hash for on-chain registration
+- [ ] Build `PATCH /api/articles/[slug]/publish` — flips status from `draft` to `published` after frontend confirms on-chain tx succeeded. Verify caller is the creator.
+- [ ] Build `GET /api/articles/[slug]` — serves article body. For paid articles: checks `hasPaid` on-chain before serving. For free articles (price = 0): serves directly.
+- [ ] Implement SIWE authentication — wallet signature verification for write endpoints. Use `viem`'s `verifyMessage` or a SIWE library.
+
+### x402 content route
+
+- [ ] Build `GET /api/articles/[slug]/x402` — gated by thirdweb x402 middleware (`settlePayment`). `payTo` = Paypink contract address. After settlement, call `recordX402Payment()` via server wallet.
+- [ ] Install thirdweb x402 server SDK (`@x402/server` or equivalent)
+- [ ] Configure thirdweb facilitator with server wallet address
+- [ ] Add `THIRDWEB_SECRET_KEY` and `SERVER_WALLET_PRIVATE_KEY` to `.env`
+
+### Client-side utilities
+
+- [ ] Build utility to compute `keccak256` of article body (use viem's `keccak256` + `toHex`) for on-chain registration
+- [ ] Build utility to verify content integrity — hash the served content, compare to on-chain `contentHash`. Define UX for mismatch (show warning banner, don't block)
 
 ## Phase 3 — Frontend (Next.js)
 
-- [ ] Build Create Article page — form (title, slug, price, markdown body), saves to DB via `/api/articles`, then calls `registerArticle()` on contract with returned hash
-- [ ] Build Article Reader page (`/[slug]`) — reads article metadata from contract, fetches content from DB via x402 route, verifies `contentHash`
-- [ ] Integrate x402 payment gate — Next.js API route that checks payment before serving content
-- [ ] Build Tip component — button on article page, calls `tip()` on contract
-- [ ] Build Creator Dashboard — total views, total earned, list of articles + stats (read from contract)
-- [ ] Test round-trip: create article → save to DB → register on-chain → pay → read back → verify content hash
+### Create Article page
+
+- [ ] Build form: title, slug, price (ETH), markdown body editor
+- [ ] Flow: save to DB as draft (`POST /api/articles`) → get contentHash → call `registerArticle()` on contract → on tx confirmation, call `PATCH /api/articles/[slug]/publish`
+- [ ] Handle failure: if wallet tx is rejected or fails, article stays as draft. User can retry the on-chain registration.
+
+### Article Reader page (`/[slug]`)
+
+- [ ] Build preview route (`/[slug]`) — shows article metadata (title, creator, price) from contract, truncated preview or summary, two payment buttons
+- [ ] "Pay with ETH" button — calls `payForArticle()` on contract, on success redirects to `/[slug]/full` which fetches from `GET /api/articles/[slug]` (checks `hasPaid` on-chain)
+- [ ] "Pay with USDC" button — uses thirdweb's `useFetchWithPayment` hook to fetch from `GET /api/articles/[slug]/x402`. Handles the 402 flow automatically.
+- [ ] Render article body as markdown (use `react-markdown` or similar)
+- [ ] Content integrity verification — hash the received body, compare to on-chain `contentHash`, show warning if mismatch
+
+### Tip component
+
+- [ ] Tip button on article page — opens a small form with `EtherInput` (Scaffold-ETH component, supports ETH/USD toggle)
+- [ ] Calls `tipBySlug()` on contract
+- [ ] Show confirmation feedback (toast or inline)
+
+### Creator Dashboard
+
+- [ ] List all creator's articles — merge on-chain data (views, earned, price) with off-chain data (title, status, createdAt) from DB
+- [ ] Show total earnings — ETH balance (from `getCreatorBalance`) + ERC-20 balances (from `creatorTokenBalances`) displayed separately
+- [ ] Withdraw buttons — one for ETH (`withdraw()`), one per ERC-20 token (`withdrawTokens(token)`)
+
+### Article discovery
+
+- [ ] Build a simple "recent articles" listing page — query DB for published articles, show title + creator + price. Link to `/[slug]`
+- [ ] (Optional) "Browse by creator" page
 
 ## Phase 4 — Polish & Deploy
 
-- [ ] Add wallet connection (Scaffold-ETH handles this, just verify it works on Ink)
-- [ ] Test full flow end-to-end on Ink testnet (or Sepolia if no Ink testnet)
+- [ ] Verify wallet connection works on Ink (Scaffold-ETH handles RainbowKit/Wagmi, just test it)
+- [ ] Add loading states for all contract interactions (pending tx toasts, skeleton loaders for data fetching)
+- [ ] Add error handling for contract reverts, DB failures, network issues — user-facing error messages
+- [ ] Test full round-trip on local Anvil: create article → save to DB → register on-chain → pay (ETH path) → read back → verify content hash
+- [ ] Test full round-trip on local Anvil: create article → pay (x402 path) → verify `recordX402Payment` state → read back
+- [ ] Test withdrawal flows: creator ETH withdrawal, creator ERC-20 withdrawal, platform withdrawals
+- [ ] Test on Ink Sepolia testnet (or Sepolia if no Ink testnet available)
 - [ ] Deploy contracts to Ink mainnet
 - [ ] Deploy frontend to Vercel
-- [ ] Wire up production env vars (RPC, contract addresses, storage keys)
+- [ ] Wire up production env vars: RPC URLs, contract addresses, `DATABASE_URL`, `THIRDWEB_SECRET_KEY`, `SERVER_WALLET_PRIVATE_KEY`
+- [ ] Environment strategy: separate `.env.local` / `.env.production` for Anvil vs Ink Sepolia vs Ink mainnet (different contract addresses, DB URLs, RPC endpoints)
 
+## Phase 5 — Future Enhancements
 
-## Phase 5 - More
+- [ ] Deploy on Superchain (https://console.optimism.io/)
+- [ ] On-chain identity / attestations (https://attest.org/, Gitcoin Passport, EAS, Worldcoin)
+- [ ] Make contracts upgradeable (UUPS proxy pattern) — https://updraft.cyfrin.io/courses/advanced-foundry
+- [ ] Farcaster Frame for paying for content via Ink contracts
+- [ ] Add explicit `ReentrancyGuard` (OpenZeppelin) — belt-and-suspenders on top of existing CEI pattern
+- [ ] IPFS/Pinata for decentralized content permanence (store body on IPFS, `contentHash` becomes CID)
 
-deploy on superchain (https://console.optimism.io/)
-use https://attest.org/ / onchain identity (gitcoin / eas/ worldcoin?)
-make it upgradeable: https://updraft.cyfrin.io/courses/advanced-foundry
-add airdrop?: https://updraft.cyfrin.io/courses/advanced-foundry
-imagine a Farcaster Frame that lets someone pay for content via your Ink contracts.
-re-entrancy guard: https://solidity-by-example.org/hacks/re-entrancy/
-have a receive/fallback function
-https://docs.pinata.cloud/files/x402/intro
+## Phase 6 — Chainlink Integrations
 
-# Phase 6 - Chainlink
+Priority order for payp.ink:
 
-Price Feeds — The bread and butter. If payp.ink ever lets creators set prices in USD but collect in ETH, you need an ETH/USD oracle. One line: AggregatorV3Interface(feedAddress).latestRoundData(). Dead simple, free to read (Chainlink subsidizes it). This is probably the most likely Chainlink service you'd actually use.
-CCIP (Cross-Chain Interoperability Protocol) — Lets you send messages and tokens across chains. If payp.ink expands beyond Ink to Base, Arbitrum, etc., CCIP lets a reader on Base pay for content whose creator is on Ink, with the cross-chain settlement handled trustlessly. It's the "Stripe Connect but for L2s" equivalent.
-Automation (formerly Keepers) — On-chain cron jobs. A Chainlink node monitors a condition and calls your contract when it's met. Use cases for payp.ink: auto-withdrawals for creators when their balance hits a threshold, time-locked content that unlocks after a date, or subscription expiry checks.
-Data Streams — Low-latency pull-based price feeds (sub-second). Overkill for payp.ink unless you build a tipping feature where the tip amount is denominated in USD but paid in ETH and you want tight pricing.
-Functions — Run arbitrary JavaScript off-chain, verified by Chainlink's decentralized network. Think of it as a trustless serverless function. Could be interesting for payp.ink to verify external data — like "this creator has 10k followers on X" to assign verification badges, without trusting your own backend.
-The realistic priority for payp.ink:
+### 6.1 — Price Feeds (high priority)
+USD-denominated article pricing, paid in ETH. `AggregatorV3Interface(feedAddress).latestRoundData()`. Makes pricing human-readable — nobody wants to guess what 0.00032 ETH means.
 
-Price Feeds — USD-denominated pricing, pay in ETH. Almost certainly useful.
-Automation — Subscription logic, periodic payouts.
-VRF — Your "Lucky Read" feature.
-Functions — Off-chain verification of creator identity/reputation.
-CCIP — Multi-chain expansion (way later).
+### 6.2 — Automation (medium priority)
+On-chain cron jobs for: auto-withdrawals when creator balance hits a threshold, time-locked content that unlocks after a date, subscription expiry checks.
 
-Start with Price Feeds. It's a 10-line integration and immediately makes the product more usable — nobody wants to figure out how much 0.00032 ETH is in dollars.
+### 6.3 — VRF / Lucky Read (blocked)
+"Lucky Read" — 5% chance of payment refund on article purchase. Currently impossible on Ink — no VRF support yet.
+Ref: https://www.chainlinkecosystem.com/ecosystem/ink
 
-## Phase 6.1 - Lucky read (Chainlink's VRF)
+### 6.4 — Functions (low priority)
+Trustless off-chain verification of creator identity/reputation (e.g., "this creator has 10k followers on X" for badges).
 
-"Lucky Read" — probabilistic free access
-When a reader pays for content, there's a small chance (say 5%) they get their payment refunded instantly on-chain. The VRF determines the outcome at payment time.
-Why this works for payp.ink:
-
-impossible on ink, no vrf support for ink yet https://www.chainlinkecosystem.com/ecosystem/ink
+### 6.5 — CCIP (way later)
+Cross-chain payments — reader on Base pays for content whose creator is on Ink. "Stripe Connect but for L2s."
 
 ##
+
+https://medium.com/@psudokit/x402-from-first-principles-a-complete-protocol-architecture-security-ai-economy-and-developer-cc1c6ff1034b
+
+https://www.x402.org/writing/x402-v2-launch
+https://github.com/coinbase/x402
+https://www.x402.org/ecosystem
+https://blog.thirdweb.com/changelog/support-for-x402-protocol-v2/
