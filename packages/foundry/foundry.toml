@@ -2,6 +2,7 @@
 src = 'contracts'
 out = 'out'
 libs = ['lib', 'node_modules']
+coverage_exclude = ["script/**", "test/**"]
 fs_permissions = [{ access = "read-write", path = "./"}]
 solc_version = "0.8.30"
 

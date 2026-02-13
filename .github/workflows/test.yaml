@@ -27,6 +27,62 @@ jobs:
         working-directory: packages/foundry
         run: forge test -vvv
 
+      - name: Generate gas snapshot
+        working-directory: packages/foundry
+        run: forge snapshot
+
+      - name: Compare gas snapshot
+        if: github.event_name == 'pull_request'
+        working-directory: packages/foundry
+        run: |
+          if [ -f .gas-snapshot ]; then
+            forge snapshot --diff .gas-snapshot > /tmp/gas-diff.txt 2>&1 || true
+            echo "GAS_DIFF<<EOF" >> "$GITHUB_ENV"
+            cat /tmp/gas-diff.txt >> "$GITHUB_ENV"
+            echo "EOF" >> "$GITHUB_ENV"
+          else
+            echo "GAS_DIFF=No committed .gas-snapshot to compare against." >> "$GITHUB_ENV"
+          fi
+
+      - name: Post gas diff to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const diff = process.env.GAS_DIFF;
+            if (!diff || diff === 'No committed .gas-snapshot to compare against.') {
+              console.log('No gas snapshot to compare against, skipping comment.');
+              return;
+            }
+            const body = `### Gas Snapshot Diff\n\n\`\`\`\n${diff}\n\`\`\``;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.startsWith('### Gas Snapshot Diff'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Upload gas snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: gas-snapshot
+          path: packages/foundry/.gas-snapshot
+
       - name: Run forge coverage
         working-directory: packages/foundry
         run: forge coverage
