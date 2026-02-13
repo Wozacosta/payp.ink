@@ -19,8 +19,8 @@
 - [x] Write unit tests for `Paypink.sol` (`forge test`)
 - [x] Write `Tip.sol` — tipping by creator address or article slug, same 99/1 split
 - [x] Write unit tests for `Tip.sol`
-- [ ] Write the deploy script (`Deploy.s.sol` or Scaffold-ETH deploy script)
-- [ ] Deploy to local Anvil chain and smoke-test via Scaffold-ETH debug UI
+- [x] Write the deploy script (`Deploy.s.sol` or Scaffold-ETH deploy script)
+- [x] Deploy to local Anvil chain and smoke-test via Scaffold-ETH debug UI
 
 ## Phase 2 — Storage
 
