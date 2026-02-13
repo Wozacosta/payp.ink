@@ -38,11 +38,14 @@ jobs:
         run: |
           yarn chain > /tmp/chain.log 2>&1 &
           for i in $(seq 1 30); do
-            curl -sf http://127.0.0.1:8545 > /dev/null 2>&1 && break
+            curl -s -X POST -H 'Content-Type: application/json' \
+              --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":1}' \
+              http://127.0.0.1:8545 > /dev/null 2>&1 && break
             sleep 1
           done
-          cat /tmp/chain.log
-          curl -sf http://127.0.0.1:8545 > /dev/null 2>&1 || { echo "Anvil failed to start"; exit 1; }
+          curl -s -X POST -H 'Content-Type: application/json' \
+            --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":1}' \
+            http://127.0.0.1:8545 > /dev/null 2>&1 || { echo "Anvil failed to start"; cat /tmp/chain.log; exit 1; }
           yarn deploy
 
       - name: Run nextjs lint
