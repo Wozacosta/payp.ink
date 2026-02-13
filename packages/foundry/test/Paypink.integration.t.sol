@@ -11,11 +11,13 @@ contract PaypinkTest is Test {
     address reader = makeAddr("reader");
     address reader2 = makeAddr("reader2");
 
+    address token = makeAddr("token");
+
     Paypink public paypink;
 
     function setUp() public {
         vm.prank(deployer);
-        paypink = new Paypink();
+        paypink = new Paypink(token);
     }
 
     function test_RegisterArticle_PayForArticle_CreatorWithdraws() public {
