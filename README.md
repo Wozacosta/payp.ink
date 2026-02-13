@@ -16,7 +16,7 @@ Multi-creator micropaid articles via x402 on Ink. On-chain tracking, instant pay
 
 ## Payment Rails
 
-![Dual Payment Rails — ETH + x402 ERC-20](docs/images/payment-rails-dataflow.png)
+![Dual Payment Rails — ETH + x402 ERC-20](docs/images/payment-rails-dataflow.webp)
 
 Two payment paths, single source of truth:
 
