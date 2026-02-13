@@ -79,6 +79,7 @@ contract Paypink {
     error Paypink__ArticleNotFound();
     error Paypink__NothingToWithdraw();
     error Paypink__Withdraw_FailedToSend();
+    error Paypink__InvalidAddress();
 
     modifier onlyOwner() {
         if (msg.sender != owner) {
@@ -90,6 +91,7 @@ contract Paypink {
     /**
      *
      * @param slug a slug
+     * @notice we're allowing free articles
      */
     function registerArticle(string calldata slug, uint256 price, string calldata contentHash) external {
         bytes32 key = keccak256(abi.encodePacked(slug));
@@ -101,7 +103,6 @@ contract Paypink {
         article.creator = msg.sender; // NOTE: could be passed as arg?
         article.price = price;
         article.contentHash = contentHash;
-        articles[key] = article;
         creatorArticles[msg.sender].push(key);
         emit ArticleRegistered(key, article.creator, article.slug, article.price);
     }
@@ -153,6 +154,9 @@ contract Paypink {
 
     // Tip a creator directly by address (same 99/1 split)
     function tipByAddress(address creator) external payable {
+        if (creator == address(0)) {
+            revert Paypink__InvalidAddress();
+        }
         _splitPayment(msg.value, creator);
         emit CreatorTipped(creator, msg.value);
     }
