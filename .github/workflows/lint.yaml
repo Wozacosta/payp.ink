@@ -36,8 +36,13 @@ jobs:
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
         run: |
-          nohup yarn chain > /dev/null 2>&1 &
-          while ! curl -sf http://127.0.0.1:8545 > /dev/null 2>&1; do sleep 1; done
+          yarn chain > /tmp/chain.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8545 > /dev/null 2>&1 && break
+            sleep 1
+          done
+          cat /tmp/chain.log
+          curl -sf http://127.0.0.1:8545 > /dev/null 2>&1 || { echo "Anvil failed to start"; exit 1; }
           yarn deploy
 
       - name: Run nextjs lint
