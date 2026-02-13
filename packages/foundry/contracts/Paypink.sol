@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Layout:
 // pragma
@@ -289,7 +289,7 @@ contract Paypink {
         creatorBalances[msg.sender] = 0;
 
         // interactions
-        (bool sent,) = msg.sender.call{value: valueToWithdraw}("");
+        (bool sent,) = msg.sender.call{ value: valueToWithdraw }("");
         if (!sent) {
             revert Paypink__Withdraw_FailedToSend();
         }
@@ -302,7 +302,7 @@ contract Paypink {
             revert Paypink__NothingToWithdraw();
         }
         ownerBalance = 0;
-        (bool sent,) = owner.call{value: valueToWithdraw}("");
+        (bool sent,) = owner.call{ value: valueToWithdraw }("");
         if (!sent) {
             revert Paypink__Withdraw_FailedToSend();
         }

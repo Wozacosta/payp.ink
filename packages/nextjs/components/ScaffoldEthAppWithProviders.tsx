@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
+import { GetSiweMessageOptions, RainbowKitSiweNextAuthProvider } from "@rainbow-me/rainbowkit-siwe-next-auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SessionProvider } from "next-auth/react";
 import { AppProgressBar as ProgressBar } from "next-nprogress-bar";
 import { useTheme } from "next-themes";
 import { Toaster } from "react-hot-toast";
@@ -25,6 +27,10 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+const getSiweMessageOptions: GetSiweMessageOptions = () => ({
+  statement: "Sign in to payp.ink",
+});
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -44,15 +50,19 @@ export const ScaffoldEthAppWithProviders = ({ children }: { children: React.Reac
 
   return (
     <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider
-          avatar={BlockieAvatar}
-          theme={mounted ? (isDarkMode ? darkTheme() : lightTheme()) : lightTheme()}
-        >
-          <ProgressBar height="3px" color="#2299dd" />
-          <ScaffoldEthApp>{children}</ScaffoldEthApp>
-        </RainbowKitProvider>
-      </QueryClientProvider>
+      <SessionProvider refetchInterval={0}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitSiweNextAuthProvider getSiweMessageOptions={getSiweMessageOptions}>
+            <RainbowKitProvider
+              avatar={BlockieAvatar}
+              theme={mounted ? (isDarkMode ? darkTheme() : lightTheme()) : lightTheme()}
+            >
+              <ProgressBar height="3px" color="#2299dd" />
+              <ScaffoldEthApp>{children}</ScaffoldEthApp>
+            </RainbowKitProvider>
+          </RainbowKitSiweNextAuthProvider>
+        </QueryClientProvider>
+      </SessionProvider>
     </WagmiProvider>
   );
 };
