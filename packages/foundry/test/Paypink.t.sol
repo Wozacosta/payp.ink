@@ -285,4 +285,13 @@ contract PaypinkTest is Test {
         paypink.withdrawPlatformFees();
         vm.stopPrank();
     }
+
+    // --- tipByAddress guards ---
+
+    function test_TipByAddress_RevertsOnZeroAddress() public {
+        vm.deal(reader, 1 ether);
+        vm.prank(reader);
+        vm.expectRevert(Paypink.Paypink__InvalidAddress.selector);
+        paypink.tipByAddress{value: 1000}(address(0));
+    }
 }
