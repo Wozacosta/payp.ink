@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     YourContract: {
-      address: "0xa15bb66138824a1c7167f5e85b957d04dd34e468",
+      address: "0x8ce361602b935680e8dec218b820ff5056beb7af",
       abi: [
         {
           type: "constructor",
@@ -148,19 +148,57 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 2,
+      deployedOnBlock: 5,
     },
     Paypink: {
-      address: "0xb19b36b1456e65e3a6d514d3f715f204bd59f431",
+      address: "0xe1aa25618fa0c7a1cfdab5d6b456af611873b629",
       abi: [
         {
           type: "constructor",
-          inputs: [],
+          inputs: [
+            {
+              name: "_paymentToken",
+              type: "address",
+              internalType: "address",
+            },
+          ],
           stateMutability: "nonpayable",
         },
         {
           type: "function",
+          name: "authorizedX402Caller",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "creatorBalances",
+          inputs: [
+            {
+              name: "creator",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "balance",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "creatorTokenBalances",
           inputs: [
             {
               name: "creator",
@@ -331,6 +369,55 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "paymentToken",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "platformTokenBalance",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "recordX402Payment",
+          inputs: [
+            {
+              name: "slug",
+              type: "string",
+              internalType: "string",
+            },
+            {
+              name: "reader",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "amount",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
           name: "registerArticle",
           inputs: [
             {
@@ -347,6 +434,32 @@ const deployedContracts = {
               name: "contentHash",
               type: "string",
               internalType: "string",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "setAuthorizedX402Caller",
+          inputs: [
+            {
+              name: "_caller",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "setPaymentToken",
+          inputs: [
+            {
+              name: "_token",
+              type: "address",
+              internalType: "address",
             },
           ],
           outputs: [],
@@ -380,6 +493,19 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "totalRecorded",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "withdraw",
           inputs: [],
           outputs: [],
@@ -388,6 +514,20 @@ const deployedContracts = {
         {
           type: "function",
           name: "withdrawPlatformFees",
+          inputs: [],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "withdrawPlatformTokenFees",
+          inputs: [],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "withdrawTokens",
           inputs: [],
           outputs: [],
           stateMutability: "nonpayable",
@@ -481,6 +621,25 @@ const deployedContracts = {
         },
         {
           type: "event",
+          name: "AuthorizedX402CallerSet",
+          inputs: [
+            {
+              name: "oldCaller",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "newCaller",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
           name: "CreatorTipped",
           inputs: [
             {
@@ -499,6 +658,50 @@ const deployedContracts = {
           anonymous: false,
         },
         {
+          type: "event",
+          name: "PaymentTokenUpdated",
+          inputs: [
+            {
+              name: "oldToken",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "newToken",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "X402PaymentRecorded",
+          inputs: [
+            {
+              name: "key",
+              type: "bytes32",
+              indexed: true,
+              internalType: "bytes32",
+            },
+            {
+              name: "reader",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "amount",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
           type: "error",
           name: "Paypink__AlreadyPaid",
           inputs: [],
@@ -506,6 +709,11 @@ const deployedContracts = {
         {
           type: "error",
           name: "Paypink__ArticleNotFound",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "Paypink__InsufficientTokenBalance",
           inputs: [],
         },
         {
@@ -530,6 +738,11 @@ const deployedContracts = {
         },
         {
           type: "error",
+          name: "Paypink__UnauthorizedCaller",
+          inputs: [],
+        },
+        {
+          type: "error",
           name: "Paypink__Withdraw_FailedToSend",
           inputs: [],
         },
@@ -549,9 +762,20 @@ const deployedContracts = {
             },
           ],
         },
+        {
+          type: "error",
+          name: "SafeERC20FailedOperation",
+          inputs: [
+            {
+              name: "token",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+        },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 3,
+      deployedOnBlock: 6,
     },
   },
   763373: {

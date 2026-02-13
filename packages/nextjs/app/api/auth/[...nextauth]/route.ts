@@ -64,10 +64,10 @@ function toIncomingMessage(req: Request): IncomingMessage {
   return { headers } as IncomingMessage;
 }
 
-function handler(req: Request) {
+async function handler(req: Request, context: { params: Promise<{ nextauth: string[] }> }) {
   const authOptions = getAuthOptions(toIncomingMessage(req));
-  const nextAuthHandler = NextAuth(authOptions);
-  return nextAuthHandler(req);
+  // NextAuth v4 detects App Router via context.params; pass context as 2nd arg
+  return NextAuth(authOptions)(req, context as any);
 }
 
 export { handler as GET, handler as POST };
