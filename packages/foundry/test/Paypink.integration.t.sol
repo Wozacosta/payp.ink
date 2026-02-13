@@ -71,5 +71,14 @@ contract PaypinkTest is Test {
         assertEq(paypink.creatorBalances(author), 0);
 
         vm.stopPrank();
+
+        // --- Owner withdraws his balance ---
+
+        vm.startPrank(deployer);
+        assertEq(deployer.balance, 0);
+        paypink.withdrawPlatformFees();
+        assertEq(paypink.ownerBalance(), 0);
+        assertEq(deployer.balance, 20);
+        vm.stopPrank();
     }
 }

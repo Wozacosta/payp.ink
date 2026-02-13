@@ -56,6 +56,7 @@ make it upgradeable: https://updraft.cyfrin.io/courses/advanced-foundry
 add airdrop?: https://updraft.cyfrin.io/courses/advanced-foundry
 imagine a Farcaster Frame that lets someone pay for content via your Ink contracts.
 re-entrancy guard: https://solidity-by-example.org/hacks/re-entrancy/
+have a receive/fallback function
 
 # Phase 6 - Chainlink
 

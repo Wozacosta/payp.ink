@@ -70,11 +70,19 @@ contract Paypink {
 
     /* ----- ERRORS ----- */
     error Paypink__WrongPrice(uint256 expected, uint256 actual);
+    error Paypink__OwnerOnly();
     error Paypink__SlugTaken();
     error Paypink__AlreadyPaid();
     error Paypink__ArticleNotFound();
     error Paypink__NothingToWithdraw();
     error Paypink__Withdraw_FailedToSend();
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) {
+            revert Paypink__OwnerOnly();
+        }
+        _;
+    }
 
     /**
      *
@@ -100,6 +108,12 @@ contract Paypink {
     // This prevents a malicious/broken creator address from blocking payments.
     // See: https://fravoll.github.io/solidity-patterns/pull_over_push.html
     // See: https://docs.openzeppelin.com/contracts/4.x/api/security#PullPayment
+    /**
+     *
+     * @param slug article reader pays for
+     * @notice The function allows a reader to pay for an article and receive a share of the revenue.
+     * We avoid undercharging creators for non‑multiple‑of‑100 payments.
+     */
     function payForArticle(string calldata slug) external payable {
         bytes32 key = keccak256(abi.encodePacked(slug));
         if (articles[key].creator == address(0)) {
@@ -150,7 +164,17 @@ contract Paypink {
     }
 
     // Platform owner withdraws platform fees
-    function withdrawPlatformFees() external {}
+    function withdrawPlatformFees() external onlyOwner {
+        uint256 valueToWithdraw = ownerBalance;
+        if (valueToWithdraw == 0) {
+            revert Paypink__NothingToWithdraw();
+        }
+        ownerBalance = 0;
+        (bool sent,) = owner.call{value: valueToWithdraw}("");
+        if (!sent) {
+            revert Paypink__Withdraw_FailedToSend();
+        }
+    }
 
     // --- Views ---
 
