@@ -116,11 +116,11 @@ contract Paypink {
         articles[key].views += 1;
         articles[key].earned += msg.value;
 
-        uint256 creatorShare = msg.value * 99 / 100;
-        console.log("Creator share:", creatorShare);
+        uint256 platformShare = msg.value * 1 / 100;
+        console.log("Platform share:", platformShare);
+        uint256 creatorShare = msg.value - platformShare;
         creatorBalances[articles[key].creator] += creatorShare;
         console.log("msg.value:", msg.value);
-        uint256 platformShare = msg.value - creatorShare;
         ownerBalance += platformShare;
         emit ArticlePaid(key, msg.sender, msg.value);
     }

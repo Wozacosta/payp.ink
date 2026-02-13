@@ -67,6 +67,25 @@ contract PaypinkTest is Test {
         vm.stopPrank();
     }
 
+    function test_PayForArticleSmallPrice() public {
+        vm.startPrank(author);
+        paypink.registerArticle("article-slug", 1, "contentHashed");
+        vm.stopPrank();
+
+        vm.deal(reader, 1 ether);
+        vm.startPrank(reader);
+
+        paypink.payForArticle{value: 1}("article-slug");
+
+        Paypink.Article memory newArticle = paypink.getArticle("article-slug");
+        assertEq(newArticle.views, 1);
+        assertEq(newArticle.earned, 1);
+
+        assertEq(paypink.ownerBalance(), 0);
+        // NOTE: we favor creator here
+        assertEq(paypink.creatorBalances(author), 1);
+    }
+
     function test_PayForArticle() public withArticle {
         vm.deal(reader, 1 ether);
         vm.startPrank(reader);
