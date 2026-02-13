@@ -52,8 +52,12 @@ contract Paypink {
         uint256 earned;
     }
 
+    /* ----- STATE VARIABLES ----- */
+
     /// @notice Deployer of the contract; receives platform fees.
     address public immutable owner;
+    address public immutable paymentToken;
+    address public authorizedX402Caller;
     /// @notice Accumulated platform fees available for withdrawal.
     uint256 public ownerBalance;
 
@@ -64,8 +68,9 @@ contract Paypink {
     /// @notice Accumulated earnings available for creator withdrawal.
     mapping(address creator => uint256 balance) public creatorBalances;
 
-    constructor() {
+    constructor(address _paymentToken) {
         owner = msg.sender;
+        paymentToken = _paymentToken;
     }
 
     /* ----- EVENTS ----- */
@@ -78,6 +83,8 @@ contract Paypink {
     event ArticleTipped(bytes32 indexed key, address indexed creator, string slug, uint256 tip);
     /// @notice Emitted when someone tips a creator directly by address.
     event CreatorTipped(address indexed creator, uint256 tip);
+    /// @notice Emitted when the authorized x402 caller is updated.
+    event AuthorizedX402CallerSet(address indexed oldCaller, address indexed newCaller);
 
     /* ----- ERRORS ----- */
 
@@ -98,12 +105,16 @@ contract Paypink {
     /// @notice Thrown when `address(0)` is passed where a valid address is required.
     error Paypink__InvalidAddress();
 
+    /* ----- MODIFIERS ----- */
+
     modifier onlyOwner() {
         if (msg.sender != owner) {
             revert Paypink__OwnerOnly();
         }
         _;
     }
+
+    /* ----- EXTERNAL ----- */
 
     /// @notice Register a new article on the platform. Free articles (price = 0) are allowed.
     /// @param slug Unique URL-friendly identifier for the article.
@@ -172,6 +183,8 @@ contract Paypink {
         emit CreatorTipped(creator, msg.value);
     }
 
+    /* ----- INTERNAL ----- */
+
     /// @dev Split `amount` 99/1 between `creator` and the platform. Rounding favours the creator.
     function _splitPayment(uint256 amount, address creator) internal {
         uint256 platformShare = amount * 1 / 100;
@@ -179,6 +192,21 @@ contract Paypink {
         creatorBalances[creator] += creatorShare;
         ownerBalance += platformShare;
     }
+
+    /* ----- SETTERS ----- */
+
+    /// @notice Set the authorized x402 facilitator address. Only callable by the contract owner.
+    /// @param _caller The new authorized caller address.
+    function setAuthorizedX402Caller(address _caller) external onlyOwner {
+        if (_caller == address(0)) {
+            revert Paypink__InvalidAddress();
+        }
+        address oldCaller = authorizedX402Caller;
+        authorizedX402Caller = _caller;
+        emit AuthorizedX402CallerSet(oldCaller, _caller);
+    }
+
+    /* ----- WITHDRAWALS ----- */
 
     /// @notice Withdraw the caller's accumulated creator earnings.
     function withdraw() external {
@@ -211,7 +239,7 @@ contract Paypink {
         }
     }
 
-    // --- Views ---
+    /* ----- VIEWS ----- */
 
     /// @notice Return the full article metadata for a given slug.
     /// @param slug Unique identifier of the article.
