@@ -68,10 +68,7 @@
     "public.article_status": {
       "name": "article_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "published"
-      ]
+      "values": ["draft", "published"]
     }
   },
   "schemas": {},

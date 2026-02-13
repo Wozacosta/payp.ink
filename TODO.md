@@ -75,18 +75,18 @@ Articles are immutable after publishing — no editing the body once registered 
 
 ### Database setup
 
-- [ ] Create Supabase project, get connection string (pooler / direct URL)
-- [ ] Add `DATABASE_URL` to `.env` (and `.env.example` with placeholder)
-- [ ] Install `drizzle-orm`, `drizzle-kit`, `postgres` in `packages/nextjs`
-- [ ] Define Drizzle schema — articles table: `slug (PK), title, body, creatorAddress, status (draft/published), createdAt, updatedAt`
-- [ ] Generate and run initial migration with `drizzle-kit`
+- [x] Create Supabase project, get connection string (pooler / direct URL)
+- [x] Add `DATABASE_URL` to `.env` (and `.env.example` with placeholder)
+- [x] Install `drizzle-orm`, `drizzle-kit`, `postgres` in `packages/nextjs`
+- [x] Define Drizzle schema — articles table: `slug (PK), title, body, creatorAddress, status (draft/published), createdAt, updatedAt`
+- [x] Generate and run initial migration with `drizzle-kit`
 
 ### API routes
 
-- [ ] Build `POST /api/articles` — authenticated via SIWE (Sign-In with Ethereum). Stores article as `draft` in DB, returns `keccak256(body)` as content hash for on-chain registration
-- [ ] Build `PATCH /api/articles/[slug]/publish` — flips status from `draft` to `published` after frontend confirms on-chain tx succeeded. Verify caller is the creator.
-- [ ] Build `GET /api/articles/[slug]` — serves article body. For paid articles: checks `hasPaid` on-chain before serving. For free articles (price = 0): serves directly.
-- [ ] Implement SIWE authentication — wallet signature verification for write endpoints. Use `viem`'s `verifyMessage` or a SIWE library.
+- [x] Build `POST /api/articles` — authenticated via SIWE (Sign-In with Ethereum). Stores article as `draft` in DB, returns `keccak256(body)` as content hash for on-chain registration
+- [x] Build `PATCH /api/articles/[slug]/publish` — flips status from `draft` to `published` after frontend confirms on-chain tx succeeded. Verify caller is the creator.
+- [x] Build `GET /api/articles/[slug]` — serves article body. For paid articles: checks `hasPaid` on-chain before serving. For free articles (price = 0): serves directly.
+- [x] Implement SIWE authentication — wallet signature verification for write endpoints. Uses RainbowKit SIWE + NextAuth v4 (`verifySiweMessage` from `viem/siwe`).
 
 ### x402 content route
 
