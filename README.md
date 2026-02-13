@@ -14,12 +14,25 @@ Multi-creator micropaid articles via x402 on Ink. On-chain tracking, instant pay
 6. Contract increments views/earned for stats
 7. Reader can optionally tip creator (same 99/1 split)
 
+## Payment Rails
+
+![Dual Payment Rails — ETH + x402 ERC-20](docs/images/payment-rails-dataflow.png)
+
+Two payment paths, single source of truth:
+
+- **Rail 1 (ETH)**: Reader calls `payForArticle()` directly on-chain. ETH is split 99/1 via `_splitPayment()` into `creatorBalances` / `ownerBalance`. Pull-pattern withdrawal.
+- **Rail 2 (x402 ERC-20)**: Thirdweb's x402 facilitator transfers USDC to the contract. Backend (authorized caller) then calls `recordX402Payment()` to record it on-chain. Tokens are split 99/1 into `creatorTokenBalances` / `platformTokenBalance`. Balance check (`balanceOf - totalRecorded >= amount`) prevents fake recordings.
+
+Both rails share the same `hasPaid` mapping, `articles` state (views, earned), and pull-over-push withdrawal pattern.
+
 ## Contracts
 
 **Paypink.sol**
 - Register article (slug, creator, price, content hash)
 - Record payment → 99/1 split using [Pull over Push](https://fravoll.github.io/solidity-patterns/pull_over_push.html) pattern (balances credited on payment, creators/platform withdraw separately). This prevents a malicious creator contract from blocking readers. See also [OpenZeppelin PullPayment](https://docs.openzeppelin.com/contracts/4.x/api/security#PullPayment).
 - Track views and earned per article
+- Record x402 ERC-20 payments with balance verification
+- Dual withdrawal: ETH (`withdraw`) and ERC-20 (`withdrawTokens`)
 
 **Tip.sol**
 - Tip any creator by address or article slug
