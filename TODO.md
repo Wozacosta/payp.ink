@@ -104,9 +104,9 @@ Articles are immutable after publishing — no editing the body once registered 
 
 ### Create Article page
 
-- [ ] Build form: title, slug, price (ETH), markdown body editor
-- [ ] Flow: save to DB as draft (`POST /api/articles`) → get contentHash → call `registerArticle()` on contract → on tx confirmation, call `PATCH /api/articles/[slug]/publish`
-- [ ] Handle failure: if wallet tx is rejected or fails, article stays as draft. User can retry the on-chain registration.
+- [x] Build form: title, slug, price (ETH), markdown body editor
+- [x] Flow: save to DB as draft (`POST /api/articles`) → get contentHash → call `registerArticle()` on contract → on tx confirmation, call `PATCH /api/articles/[slug]/publish`
+- [x] Handle failure: if wallet tx is rejected or fails, article stays as draft. User can retry the on-chain registration.
 
 ### Article Reader page (`/[slug]`)
 
