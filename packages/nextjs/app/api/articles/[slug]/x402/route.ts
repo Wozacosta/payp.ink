@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { formatUnits, getAddress } from "viem";
+import { BaseError, ContractFunctionRevertedError, formatUnits, getAddress } from "viem";
 import { withX402 } from "x402-next";
 import { db } from "~~/db";
 import { articles } from "~~/db/schema";
@@ -86,20 +86,32 @@ async function getRouteConfig(req: NextRequest) {
     return { price: "$0.01" as const, network: "base-sepolia" as const };
   }
 
-  const onChainArticle = (await publicClient.readContract({
-    ...paypinkContract,
-    functionName: "getArticle",
-    args: [slug],
-  })) as OnChainArticle;
+  try {
+    const onChainArticle = (await publicClient.readContract({
+      ...paypinkContract,
+      functionName: "getArticle",
+      args: [slug],
+    })) as OnChainArticle;
 
-  // Convert price from wei (assuming USDC 6 decimals) to dollar string
-  const priceUsd = formatUnits(onChainArticle.price, 6);
+    const priceUsd = formatUnits(onChainArticle.price, 6);
 
-  return {
-    price: `$${priceUsd}` as const,
-    network: "base-sepolia" as const,
-    config: { description: `Access article: ${slug}` },
-  };
+    return {
+      price: `$${priceUsd}` as const,
+      network: "base-sepolia" as const,
+      config: { description: `Access article: ${slug}` },
+    };
+  } catch (e) {
+    if (e instanceof ContractFunctionRevertedError) {
+      console.error(`getArticle reverted for slug "${slug}":`, e.reason);
+    } else if (e instanceof BaseError) {
+      console.error(`RPC error reading article "${slug}":`, e.shortMessage);
+    } else {
+      console.error(`Unexpected error reading article "${slug}":`, e);
+    }
+
+    // Fallback: return a default config so withX402 can still respond with 402
+    return { price: "$0.01" as const, network: "base-sepolia" as const };
+  }
 }
 
 export const GET = withX402(handler, paypinkContract?.address ?? "0x0", getRouteConfig);

@@ -2,15 +2,8 @@ import NextAuth, { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { getCsrfToken } from "next-auth/react";
 import type { IncomingMessage } from "node:http";
-import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
 import { type SiweMessage, parseSiweMessage, verifySiweMessage } from "viem/siwe";
-
-// Chain-agnostic client for ERC-1271 signature verification
-const publicClient = createPublicClient({
-  chain: mainnet,
-  transport: http(),
-});
+import { publicClient } from "~~/services/web3/serverClient";
 
 function getAuthOptions(req: IncomingMessage): NextAuthOptions {
   return {
