@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
       creatorAddress: address,
     });
   } catch (e: any) {
-    if (e.code === "23505") {
+    const pgCode = e.code ?? e.cause?.code;
+    if (pgCode === "23505") {
       return NextResponse.json({ error: "Slug already exists" }, { status: 409 });
     }
     console.error("DB insert error:", e);

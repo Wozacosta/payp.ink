@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sl
     return NextResponse.json({ error: "Article not found" }, { status: 404 });
   }
 
-  if (article.creatorAddress.toLowerCase() !== address) {
+  if (article.creatorAddress.toLowerCase() !== address.toLowerCase()) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

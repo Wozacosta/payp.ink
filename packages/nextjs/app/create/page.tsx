@@ -244,69 +244,59 @@ const CreateArticle: NextPage = () => {
         {/* Left column: Form */}
         <div className="flex flex-col gap-4">
           {/* Title */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-semibold">Title</span>
-            </label>
+          <fieldset className="fieldset">
+            <label className="label font-semibold">Title</label>
             <input
               type="text"
-              className="input input-bordered w-full"
+              className="input w-full"
               placeholder="My Article Title"
               value={title}
               onChange={e => setTitle(e.target.value)}
               disabled={isBusy}
             />
-          </div>
+          </fieldset>
 
           {/* Slug */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-semibold">Slug</span>
-            </label>
+          <fieldset className="fieldset">
+            <label className="label font-semibold">Slug</label>
             <input
               type="text"
-              className={`input input-bordered w-full ${slug.length > 0 && !isSlugValid ? "input-error" : ""}`}
+              className={`input w-full ${slug.length > 0 && !isSlugValid ? "input-error" : ""}`}
               placeholder="my-article-slug"
               value={slug}
               onChange={e => handleSlugChange(e.target.value)}
               maxLength={MAX_SLUG_LENGTH}
               disabled={isBusy}
             />
-            <label className="label">
-              <span className={`label-text-alt ${slug.length > 0 && !isSlugValid ? "text-error" : ""}`}>
-                {slug.length > 0 && !isSlugValid
-                  ? "Lowercase letters, numbers, and hyphens only"
-                  : `${slug.length}/${MAX_SLUG_LENGTH}`}
-              </span>
-            </label>
-          </div>
+            <p className={`label text-xs ${slug.length > 0 && !isSlugValid ? "text-error" : ""}`}>
+              {slug.length > 0 && !isSlugValid
+                ? "Lowercase letters, numbers, and hyphens only"
+                : `${slug.length}/${MAX_SLUG_LENGTH}`}
+            </p>
+          </fieldset>
 
           {/* Price */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-semibold">Price</span>
-            </label>
+          <fieldset className="fieldset">
+            <label className="label font-semibold">Price</label>
             <EtherInput
               key={formKey}
               placeholder="0 (free)"
               onValueChange={({ valueInEth }) => setPrice(valueInEth)}
               disabled={isBusy}
             />
-          </div>
+          </fieldset>
 
           {/* Body */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-semibold">Body (Markdown)</span>
-            </label>
+          <fieldset className="fieldset">
+            <label className="label font-semibold">Body (Markdown)</label>
             <textarea
-              className="textarea textarea-bordered w-full h-96 font-mono text-sm"
+              className="w-full h-96 rounded-lg border border-base-content/20 bg-base-100 p-3 font-mono text-sm focus:outline-none focus:border-base-content"
               placeholder={"# Your Article\n\nWrite your content in **markdown**..."}
               value={body}
               onChange={e => setBody(e.target.value)}
               disabled={isBusy}
             />
-          </div>
+          </fieldset>
 
           {/* Submit */}
           <button className="btn btn-primary" onClick={handleSubmit} disabled={!isFormValid || isBusy}>
@@ -323,9 +313,7 @@ const CreateArticle: NextPage = () => {
 
         {/* Right column: Live Preview */}
         <div className="flex flex-col">
-          <label className="label">
-            <span className="label-text font-semibold">Live Preview</span>
-          </label>
+          <label className="label font-semibold">Live Preview</label>
           <div className="card bg-base-100 shadow-sm border border-base-300 p-6 min-h-96 overflow-auto">
             {body ? (
               <article className="prose max-w-none">
