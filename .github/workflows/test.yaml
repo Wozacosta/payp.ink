@@ -21,7 +21,7 @@ jobs:
       - name: Install foundry-toolchain
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: 1.5.1
 
       - name: Run forge tests
         working-directory: packages/foundry
