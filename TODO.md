@@ -22,22 +22,29 @@
 - [x] Write the deploy script (`Deploy.s.sol` or Scaffold-ETH deploy script)
 - [x] Deploy to local Anvil chain and smoke-test via Scaffold-ETH debug UI
 
-## Phase 2 — Storage
+## Phase 2 — Storage & Content Integrity
 
-- [ ] Pick IPFS (Pinata/web3.storage) or Arweave (Irys) — set up SDK/client
-    more here: https://updraft.cyfrin.io/courses/advanced-foundry/how-to-create-an-NFT-collection/pin-nfts-images-using-pinata
-  filecoin?: https://updraft.cyfrin.io/courses/advanced-foundry/how-to-create-an-NFT-collection/introduction-to-filecoin-arweave
-- [ ] Build a utility function: upload article markdown, return content hash
-- [ ] Verify content hash matches what gets stored on-chain
+Decision: Article body stored in Postgres (Supabase). `contentHash` on-chain is `keccak256(body)` — purely an integrity proof, not a retrieval pointer.
+Paid content served by x402 API route from DB. IPFS/Pinata deferred to a future version for decentralized permanence.
+Stack: Drizzle ORM + `postgres` driver + Supabase connection string (same DB for local dev and prod, swap URL in `.env`).
+
+- [ ] Create Supabase project, get connection string (pooler / direct URL)
+- [ ] Add `DATABASE_URL` to `.env` (and `.env.example` with placeholder)
+- [ ] Install `drizzle-orm`, `drizzle-kit`, `postgres` in `packages/nextjs`
+- [ ] Define Drizzle schema — articles table: `slug (PK), title, body, createdAt`
+- [ ] Generate and run initial migration with `drizzle-kit`
+- [ ] Build Next.js API route (`/api/articles`) — stores article body in DB, returns `keccak256(body)` as content hash
+- [ ] Build client-side utility to compute `keccak256` of article body (use viem's `keccak256` + `toHex`) for on-chain registration
+- [ ] Build client-side utility to verify content integrity — hash the served content, compare to on-chain `contentHash`
 
 ## Phase 3 — Frontend (Next.js)
 
-- [ ] Build Create Article page — form (title, slug, price, markdown body), uploads to IPFS/Arweave, calls `registerArticle()` on contract
-- [ ] Build Article Reader page (`/[slug]`) — fetches article metadata from contract, fetches content from IPFS/Arweave
-  (resources: https://docs.ipfs.tech/)
+- [ ] Build Create Article page — form (title, slug, price, markdown body), saves to DB via `/api/articles`, then calls `registerArticle()` on contract with returned hash
+- [ ] Build Article Reader page (`/[slug]`) — reads article metadata from contract, fetches content from DB via x402 route, verifies `contentHash`
 - [ ] Integrate x402 payment gate — Next.js API route that checks payment before serving content
 - [ ] Build Tip component — button on article page, calls `tip()` on contract
 - [ ] Build Creator Dashboard — total views, total earned, list of articles + stats (read from contract)
+- [ ] Test round-trip: create article → save to DB → register on-chain → pay → read back → verify content hash
 
 ## Phase 4 — Polish & Deploy
 
@@ -57,6 +64,7 @@ add airdrop?: https://updraft.cyfrin.io/courses/advanced-foundry
 imagine a Farcaster Frame that lets someone pay for content via your Ink contracts.
 re-entrancy guard: https://solidity-by-example.org/hacks/re-entrancy/
 have a receive/fallback function
+https://docs.pinata.cloud/files/x402/intro
 
 # Phase 6 - Chainlink
 
