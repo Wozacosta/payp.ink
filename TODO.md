@@ -37,10 +37,10 @@ Ref: https://www.x402.org/writing/x402-v2-launch
 
 - [x] Add single payment token — `address public paymentToken`, set in constructor (USDC on Ink). Owner can update via `setPaymentToken()`. V2: generalize to a multi-token whitelist.
 - [x] Add authorized x402 caller — `address public authorizedX402Caller`, changeable by owner via `setAuthorizedX402Caller()`
-- [ ] Add ERC-20 balance tracking — `uint256 public totalRecorded` to track how many tokens have been accounted for
-- [ ] Add per-creator token balances — `mapping(address creator => uint256) creatorTokenBalances`
-- [ ] Add platform token balance — `uint256 public platformTokenBalance`
-- [ ] Implement `recordX402Payment(string slug, address reader, uint256 amount)`:
+- [x] Add ERC-20 balance tracking — `uint256 public totalRecorded` to track how many tokens have been accounted for
+- [x] Add per-creator token balances — `mapping(address creator => uint256) creatorTokenBalances`
+- [x] Add platform token balance — `uint256 public platformTokenBalance`
+- [x] Implement `recordX402Payment(string slug, address reader, uint256 amount)`:
   - Restricted to `authorizedX402Caller` only
   - Balance check: `IERC20(paymentToken).balanceOf(address(this)) - totalRecorded >= amount`
   - Set `hasPaid[slugHash][reader] = true` (revert if already paid)
@@ -48,18 +48,22 @@ Ref: https://www.x402.org/writing/x402-v2-launch
   - Credit 99/1 split to `creatorTokenBalances` and `platformTokenBalance`
   - Update `totalRecorded += amount`
   - Emit `X402PaymentRecorded` event
-- [ ] Implement `withdrawTokens()` — creator withdraws accumulated ERC-20 earnings (pull pattern, same as ETH `withdraw()`)
-- [ ] Implement `withdrawPlatformTokenFees()` — owner withdraws platform's ERC-20 share
-- [ ] Add new errors: `Paypink__UnauthorizedCaller`, `Paypink__InsufficientTokenBalance`
-- [ ] Add new events: `X402PaymentRecorded`, `PaymentTokenUpdated`, `AuthorizedCallerUpdated`
+- [x] Implement `withdrawTokens()` — creator withdraws accumulated ERC-20 earnings (pull pattern, same as ETH `withdraw()`)
+- [x] Implement `withdrawPlatformTokenFees()` — owner withdraws platform's ERC-20 share
+- [x] Add new errors: `Paypink__UnauthorizedCaller`, `Paypink__InsufficientTokenBalance`
+- [x] Add new events: `X402PaymentRecorded`, `PaymentTokenUpdated`, `AuthorizedCallerUpdated`
+- [x] Import `IERC20` + `SafeERC20` from OpenZeppelin; use `safeTransfer` for ERC-20 withdrawals
+- [x] Change `paymentToken` from `immutable` to mutable (required for `setPaymentToken()`)
+- [x] Add `onlyAuthorizedX402Caller` modifier
+- [x] Add payment rails data flow diagram (`_bmad-output/excalidraw-diagrams/dataflow-payment-rails.excalidraw`)
 
 ### Tests
 
-- [ ] Unit tests for `recordX402Payment` — happy path, unauthorized caller, insufficient balance, already paid, article not found
-- [ ] Unit tests for ERC-20 withdrawals — creator and platform, zero balance, correct amounts
-- [ ] Unit tests for admin functions — set payment token, set authorized caller, access control
-- [ ] Integration test: simulate full x402 flow — transfer ERC-20 to contract, call `recordX402Payment`, verify state, withdraw
-- [ ] Update deploy script if needed
+- [x] Unit tests for `recordX402Payment` — happy path, unauthorized caller, insufficient balance, already paid, article not found
+- [x] Unit tests for ERC-20 withdrawals — creator and platform, zero balance, correct amounts
+- [x] Unit tests for admin functions — set payment token, set authorized caller, access control
+- [x] Integration test: simulate full x402 flow — transfer ERC-20 to contract, call `recordX402Payment`, verify state, withdraw
+- [x] Update deploy script if needed
 
 ## Phase 2 — Storage & Content Integrity
 
