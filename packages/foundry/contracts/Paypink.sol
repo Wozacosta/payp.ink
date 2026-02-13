@@ -130,22 +130,22 @@ contract Paypink {
     /// @param slug Unique identifier of the article to unlock.
     function payForArticle(string calldata slug) external payable {
         bytes32 key = keccak256(abi.encodePacked(slug));
-        if (articles[key].creator == address(0)) {
+        Article storage article = articles[key];
+        if (article.creator == address(0)) {
             revert Paypink__ArticleNotFound();
         }
         if (hasPaid[key][msg.sender]) {
             revert Paypink__AlreadyPaid();
         }
 
-        if (msg.value != articles[key].price) {
-            revert Paypink__WrongPrice(articles[key].price, msg.value);
+        if (msg.value != article.price) {
+            revert Paypink__WrongPrice(article.price, msg.value);
         }
         hasPaid[key][msg.sender] = true;
-        articles[key].views += 1;
-        articles[key].earned += msg.value;
+        article.views += 1;
+        article.earned += msg.value;
 
-        address creator = articles[key].creator;
-        _splitPayment(msg.value, creator);
+        _splitPayment(msg.value, article.creator);
         emit ArticlePaid(key, msg.sender, msg.value);
     }
 
@@ -153,13 +153,13 @@ contract Paypink {
     /// @param slug Identifier of the article whose creator receives the tip.
     function tipBySlug(string calldata slug) external payable {
         bytes32 key = keccak256(abi.encodePacked(slug));
-        if (articles[key].creator == address(0)) {
+        Article storage article = articles[key];
+        if (article.creator == address(0)) {
             revert Paypink__ArticleNotFound();
         }
-        articles[key].earned += msg.value;
-        address creator = articles[key].creator;
-        _splitPayment(msg.value, creator);
-        emit ArticleTipped(key, creator, slug, msg.value);
+        article.earned += msg.value;
+        _splitPayment(msg.value, article.creator);
+        emit ArticleTipped(key, article.creator, slug, msg.value);
     }
 
     /// @notice Tip a creator directly by address. The tip is split 99/1 (creator/platform).
