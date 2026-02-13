@@ -35,17 +35,23 @@ jobs:
         working-directory: packages/foundry
         run: forge snapshot
 
+      - name: Fetch base branch gas snapshot
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          git show origin/${{ github.base_ref }}:packages/foundry/.gas-snapshot > /tmp/base-gas-snapshot 2>/dev/null || true
+
       - name: Compare gas snapshot
         if: github.event_name == 'pull_request'
         working-directory: packages/foundry
         run: |
-          if [ -f .gas-snapshot ]; then
-            forge snapshot --diff .gas-snapshot > /tmp/gas-diff.txt 2>&1 || true
+          if [ -s /tmp/base-gas-snapshot ]; then
+            forge snapshot --diff /tmp/base-gas-snapshot > /tmp/gas-diff.txt 2>&1 || true
             echo "GAS_DIFF<<EOF" >> "$GITHUB_ENV"
             cat /tmp/gas-diff.txt >> "$GITHUB_ENV"
             echo "EOF" >> "$GITHUB_ENV"
           else
-            echo "GAS_DIFF=No committed .gas-snapshot to compare against." >> "$GITHUB_ENV"
+            echo "GAS_DIFF=No .gas-snapshot found on base branch." >> "$GITHUB_ENV"
           fi
 
       - name: Post gas diff to PR
