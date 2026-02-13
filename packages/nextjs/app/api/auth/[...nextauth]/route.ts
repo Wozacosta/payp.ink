@@ -73,9 +73,8 @@ function toIncomingMessage(req: Request): IncomingMessage {
 
 function handler(req: Request) {
   const authOptions = getAuthOptions(toIncomingMessage(req));
-  // NextAuth v4 detects Web Request and returns a Web Response
-  // @ts-expect-error -- NextAuth v4 types don't include the App Router overload
-  return NextAuth(req, authOptions);
+  const nextAuthHandler = NextAuth(authOptions);
+  return nextAuthHandler(req);
 }
 
 export { handler as GET, handler as POST };
