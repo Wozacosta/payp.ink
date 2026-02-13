@@ -11,6 +11,8 @@ contract PaypinkTest is Test {
     address author = makeAddr("author");
     address reader = makeAddr("reader");
 
+    address token = makeAddr("token");
+
     Paypink public paypink;
 
     modifier withArticle() {
@@ -22,7 +24,7 @@ contract PaypinkTest is Test {
 
     function setUp() public {
         vm.prank(deployer);
-        paypink = new Paypink();
+        paypink = new Paypink(token);
     }
 
     function test_Checkowner() public {

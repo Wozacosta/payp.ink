@@ -25,6 +25,8 @@ contract DeployPaypink is ScaffoldETHDeploy {
      *      - Export contract addresses & ABIs to `nextjs` packages
      */
     function run() external ScaffoldEthDeployerRunner {
-        new Paypink();
+        // TODO: replace with actual USDC address per network
+        address paymentToken = vm.envOr("PAYMENT_TOKEN", address(0));
+        new Paypink(paymentToken);
     }
 }

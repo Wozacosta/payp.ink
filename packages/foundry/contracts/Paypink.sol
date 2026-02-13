@@ -1,6 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 // Layout:
 // pragma
 // imports
@@ -41,6 +44,8 @@ pragma solidity >=0.8.0 <0.9.0;
  * @dev Articles are keyed by `keccak256(slug)`. Payments use a pull-over-push withdrawal pattern.
  */
 contract Paypink {
+    using SafeERC20 for IERC20;
+
     /// @notice Metadata and accounting for a single article.
     struct Article {
         string slug;
@@ -56,10 +61,12 @@ contract Paypink {
 
     /// @notice Deployer of the contract; receives platform fees.
     address public immutable owner;
-    address public immutable paymentToken;
+    address public paymentToken;
     address public authorizedX402Caller;
     /// @notice Accumulated platform fees available for withdrawal.
     uint256 public ownerBalance;
+    /// @notice Total ERC-20 tokens accounted for through known payment paths.
+    uint256 public totalRecorded;
 
     mapping(bytes32 slugHash => Article) articles;
     mapping(address creator => bytes32[] slugHashes) creatorArticles;
@@ -67,6 +74,10 @@ contract Paypink {
     mapping(bytes32 slugHash => mapping(address reader => bool paid)) public hasPaid;
     /// @notice Accumulated earnings available for creator withdrawal.
     mapping(address creator => uint256 balance) public creatorBalances;
+    /// @notice Accumulated ERC-20 earnings available for creator withdrawal.
+    mapping(address creator => uint256 balance) public creatorTokenBalances;
+    /// @notice Accumulated platform ERC-20 fees available for withdrawal.
+    uint256 public platformTokenBalance;
 
     constructor(address _paymentToken) {
         owner = msg.sender;
@@ -85,6 +96,10 @@ contract Paypink {
     event CreatorTipped(address indexed creator, uint256 tip);
     /// @notice Emitted when the authorized x402 caller is updated.
     event AuthorizedX402CallerSet(address indexed oldCaller, address indexed newCaller);
+    /// @notice Emitted when an x402 ERC-20 payment is recorded.
+    event X402PaymentRecorded(bytes32 indexed key, address indexed reader, uint256 amount);
+    /// @notice Emitted when the payment token is updated.
+    event PaymentTokenUpdated(address indexed oldToken, address indexed newToken);
 
     /* ----- ERRORS ----- */
 
@@ -104,12 +119,23 @@ contract Paypink {
     error Paypink__Withdraw_FailedToSend();
     /// @notice Thrown when `address(0)` is passed where a valid address is required.
     error Paypink__InvalidAddress();
+    /// @notice Thrown when a non-authorized caller calls a restricted function.
+    error Paypink__UnauthorizedCaller();
+    /// @notice Thrown when the contract's token balance doesn't cover the recorded amount.
+    error Paypink__InsufficientTokenBalance();
 
     /* ----- MODIFIERS ----- */
 
     modifier onlyOwner() {
         if (msg.sender != owner) {
             revert Paypink__OwnerOnly();
+        }
+        _;
+    }
+
+    modifier onlyAuthorizedX402Caller() {
+        if (msg.sender != authorizedX402Caller) {
+            revert Paypink__UnauthorizedCaller();
         }
         _;
     }
@@ -183,6 +209,38 @@ contract Paypink {
         emit CreatorTipped(creator, msg.value);
     }
 
+    /// @notice Record an x402 ERC-20 payment after the facilitator has transferred tokens to this contract.
+    /// @param slug Unique identifier of the article.
+    /// @param reader Address of the reader who paid via x402.
+    /// @param amount ERC-20 amount paid.
+    function recordX402Payment(string calldata slug, address reader, uint256 amount) external onlyAuthorizedX402Caller {
+        bytes32 key = keccak256(abi.encodePacked(slug));
+        Article storage article = articles[key];
+        if (article.creator == address(0)) {
+            revert Paypink__ArticleNotFound();
+        }
+        if (hasPaid[key][reader]) {
+            revert Paypink__AlreadyPaid();
+        }
+
+        uint256 unrecorded = IERC20(paymentToken).balanceOf(address(this)) - totalRecorded;
+        if (unrecorded < amount) {
+            revert Paypink__InsufficientTokenBalance();
+        }
+
+        hasPaid[key][reader] = true;
+        article.views += 1;
+        article.earned += amount;
+
+        uint256 platformShare = amount / 100;
+        uint256 creatorShare = amount - platformShare;
+        creatorTokenBalances[article.creator] += creatorShare;
+        platformTokenBalance += platformShare;
+        totalRecorded += amount;
+
+        emit X402PaymentRecorded(key, reader, amount);
+    }
+
     /* ----- INTERNAL ----- */
 
     /// @dev Split `amount` 99/1 between `creator` and the platform. Rounding favours the creator.
@@ -194,6 +252,17 @@ contract Paypink {
     }
 
     /* ----- SETTERS ----- */
+
+    /// @notice Set the payment token address. Only callable by the contract owner.
+    /// @param _token The new payment token address.
+    function setPaymentToken(address _token) external onlyOwner {
+        if (_token == address(0)) {
+            revert Paypink__InvalidAddress();
+        }
+        address oldToken = paymentToken;
+        paymentToken = _token;
+        emit PaymentTokenUpdated(oldToken, _token);
+    }
 
     /// @notice Set the authorized x402 facilitator address. Only callable by the contract owner.
     /// @param _caller The new authorized caller address.
@@ -237,6 +306,28 @@ contract Paypink {
         if (!sent) {
             revert Paypink__Withdraw_FailedToSend();
         }
+    }
+
+    /// @notice Withdraw the caller's accumulated ERC-20 earnings.
+    function withdrawTokens() external {
+        uint256 valueToWithdraw = creatorTokenBalances[msg.sender];
+        if (valueToWithdraw == 0) {
+            revert Paypink__NothingToWithdraw();
+        }
+        creatorTokenBalances[msg.sender] = 0;
+        totalRecorded -= valueToWithdraw;
+        IERC20(paymentToken).safeTransfer(msg.sender, valueToWithdraw);
+    }
+
+    /// @notice Withdraw accumulated platform ERC-20 fees. Only callable by the contract owner.
+    function withdrawPlatformTokenFees() external onlyOwner {
+        uint256 valueToWithdraw = platformTokenBalance;
+        if (valueToWithdraw == 0) {
+            revert Paypink__NothingToWithdraw();
+        }
+        platformTokenBalance = 0;
+        totalRecorded -= valueToWithdraw;
+        IERC20(paymentToken).safeTransfer(owner, valueToWithdraw);
     }
 
     /* ----- VIEWS ----- */

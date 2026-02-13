@@ -36,7 +36,7 @@ Ref: https://www.x402.org/writing/x402-v2-launch
 ### Contract changes
 
 - [x] Add single payment token — `address public paymentToken`, set in constructor (USDC on Ink). Owner can update via `setPaymentToken()`. V2: generalize to a multi-token whitelist.
-- [ ] Add authorized x402 caller — `address public authorizedX402Caller`, changeable by owner via `setAuthorizedX402Caller()`
+- [x] Add authorized x402 caller — `address public authorizedX402Caller`, changeable by owner via `setAuthorizedX402Caller()`
 - [ ] Add ERC-20 balance tracking — `uint256 public totalRecorded` to track how many tokens have been accounted for
 - [ ] Add per-creator token balances — `mapping(address creator => uint256) creatorTokenBalances`
 - [ ] Add platform token balance — `uint256 public platformTokenBalance`
