@@ -328,23 +328,23 @@ describe("GET (routing wrapper)", () => {
     expect(mockX402Handler).toHaveBeenCalledWith(req);
   });
 
-  it("falls through to x402 for free article not found in DB", async () => {
+  it("returns 404 for free article not found in DB", async () => {
     mockReadContract.mockResolvedValueOnce(makeOnChainArticle({ price: 0n }));
     mockDbSelect.mockResolvedValueOnce([]);
 
-    const req = makeRequest("test-article");
-    await GET(req);
+    const res = await GET(makeRequest("test-article"));
 
-    expect(mockX402Handler).toHaveBeenCalledWith(req);
+    expect(res.status).toBe(404);
+    expect(mockX402Handler).not.toHaveBeenCalled();
   });
 
-  it("falls through to x402 for free article that is still a draft", async () => {
+  it("returns 404 for free article that is still a draft", async () => {
     mockReadContract.mockResolvedValueOnce(makeOnChainArticle({ price: 0n }));
     mockDbSelect.mockResolvedValueOnce([makeDbArticle({ status: "draft" })]);
 
-    const req = makeRequest("test-article");
-    await GET(req);
+    const res = await GET(makeRequest("test-article"));
 
-    expect(mockX402Handler).toHaveBeenCalledWith(req);
+    expect(res.status).toBe(404);
+    expect(mockX402Handler).not.toHaveBeenCalled();
   });
 });

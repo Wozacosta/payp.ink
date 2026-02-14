@@ -1,6 +1,6 @@
-import { getSlugHash } from "../slugHash";
 import { encodePacked, keccak256 } from "viem";
 import { describe, expect, it } from "vitest";
+import { getSlugHash } from "~~/services/web3/slugHash";
 
 describe("getSlugHash", () => {
   it("returns keccak256 of encodePacked string", () => {

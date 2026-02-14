@@ -113,7 +113,7 @@ Articles are immutable after publishing — no editing the body once registered 
 - [x] Build preview route (`/[slug]`) — shows article metadata (title, creator, price) from contract, truncated preview or summary, two payment buttons
 - [x] "Pay with ETH" button — calls `payForArticle()` on contract, on success fetches full content from `GET /api/articles/[slug]` (checks `hasPaid` on-chain)
 - [x] "Pay with USDC" button — fetches from `GET /api/articles/[slug]/x402`. Handles the 402 flow via x402-next.
-- [x] Render article body as markdown (use `react-markdown` + `remark-gfm`)
+- [x] Render article body as Markdown (use `react-markdown` + `remark-gfm`)
 - [x] Content integrity verification — hash the received body, compare to on-chain `contentHash`, show warning if mismatch
 
 ### Tip component

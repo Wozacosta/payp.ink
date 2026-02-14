@@ -2,20 +2,20 @@ import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry, inkSepolia } from "viem/chains";
 
-const chains = { [foundry.id]: foundry, [inkSepolia.id]: inkSepolia } as const;
-const rawEnvChainId = process.env.NEXT_PUBLIC_TARGET_CHAIN_ID;
-let envChainId: number | null = null;
-if (rawEnvChainId) {
-  const parsed = Number(rawEnvChainId);
-  if (!Number.isFinite(parsed) || !(parsed in chains)) {
+const CHAINS = { [foundry.id]: foundry, [inkSepolia.id]: inkSepolia } as const;
+const RAW_ENV_CHAIN_ID = process.env.NEXT_PUBLIC_TARGET_CHAIN_ID;
+let ENV_CHAIN_ID: number | null = null;
+if (RAW_ENV_CHAIN_ID) {
+  const parsed = Number(RAW_ENV_CHAIN_ID);
+  if (!Number.isFinite(parsed) || !(parsed in CHAINS)) {
     throw new Error(
-      `Invalid NEXT_PUBLIC_TARGET_CHAIN_ID="${rawEnvChainId}". Must be one of: ${Object.keys(chains).join(", ")}`,
+      `Invalid NEXT_PUBLIC_TARGET_CHAIN_ID="${RAW_ENV_CHAIN_ID}". Must be one of: ${Object.keys(CHAINS).join(", ")}`,
     );
   }
-  envChainId = parsed;
+  ENV_CHAIN_ID = parsed;
 }
-const chainId = envChainId ?? (process.env.NODE_ENV === "production" ? inkSepolia.id : foundry.id);
-const chain = chains[chainId as keyof typeof chains];
+const CHAIN_ID = ENV_CHAIN_ID ?? (process.env.NODE_ENV === "production" ? inkSepolia.id : foundry.id);
+const CHAIN = CHAINS[CHAIN_ID as keyof typeof CHAINS];
 
 let _walletClient: ReturnType<typeof createClient> | null = null;
 
@@ -27,7 +27,7 @@ function createClient() {
 
   return createWalletClient({
     account,
-    chain,
+    chain: CHAIN,
     transport: http(),
   });
 }
