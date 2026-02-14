@@ -112,3 +112,24 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: packages/foundry/lcov.info
+
+  nextjs-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+        with:
+          submodules: recursive
+
+      - name: Setup node env
+        uses: actions/setup-node@v3
+        with:
+          node-version: lts/*
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Run nextjs tests
+        run: yarn next:test
