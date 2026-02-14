@@ -22,5 +22,11 @@ node_modules
 # cli
 dist
 
+# synpress
+.cache-synpress/
+packages/nextjs/e2e/test-report/
+packages/nextjs/e2e/test-results/
+packages/nextjs/e2e/node_modules/
+
 # bmad
 _bmad/

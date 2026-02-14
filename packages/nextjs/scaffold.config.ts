@@ -13,9 +13,16 @@ export type ScaffoldConfig = BaseConfig;
 
 export const DEFAULT_ALCHEMY_API_KEY = "cR4WnXePioePZ5fFrnSiR";
 
+// First network is the default — foundry first for local dev, Ink Sepolia for production
+const isLocalDev = process.env.NODE_ENV !== "production";
+
+const targetNetworks = isLocalDev
+  ? ([chains.foundry, chains.inkSepolia, chains.baseSepolia] as const)
+  : ([chains.inkSepolia, chains.baseSepolia, chains.foundry] as const);
+
 const scaffoldConfig = {
   // The networks on which your DApp is live
-  targetNetworks: [chains.inkSepolia, chains.baseSepolia, chains.foundry],
+  targetNetworks,
   // The interval at which your front-end polls the RPC servers for new data (it has no effect if you only target the local network (default is 4000))
   pollingInterval: 3000,
   // This is ours Alchemy's default API key.
