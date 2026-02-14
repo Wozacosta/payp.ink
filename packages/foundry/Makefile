@@ -58,3 +58,30 @@ test:
 # Verify contracts
 verify:
 	forge script script/VerifyAll.s.sol --ffi --rpc-url $(RPC_URL)
+
+# Ink Sepolia verification via Blockscout
+INK_SEPOLIA_RPC = https://rpc-gel-sepolia.inkonchain.com
+INK_SEPOLIA_EXPLORER = https://explorer-sepolia.inkonchain.com/api/
+# Extract deployed contract address by chain ID and name from deployedContracts.ts
+# Usage: $(call get-addr,763373,Paypink)
+define get-addr
+$(shell node -p "const fs=require('fs');const src=fs.readFileSync('../nextjs/contracts/deployedContracts.ts','utf8');const m=src.match(new RegExp('$(1):[\\\\s\\\\S]*?$(2):[\\\\s\\\\S]*?address:\\\\s*\"(0x[a-f0-9]+)\"'));m?m[1]:'NOT_FOUND'")
+endef
+
+verify-ink-sepolia: verify-ink-sepolia-paypink verify-ink-sepolia-yourcontract
+
+verify-ink-sepolia-paypink:
+	forge verify-contract \
+		--rpc-url $(INK_SEPOLIA_RPC) \
+		--verifier blockscout \
+		--verifier-url '$(INK_SEPOLIA_EXPLORER)' \
+		$(call get-addr,763373,Paypink) \
+		contracts/Paypink.sol:Paypink
+
+verify-ink-sepolia-yourcontract:
+	forge verify-contract \
+		--rpc-url $(INK_SEPOLIA_RPC) \
+		--verifier blockscout \
+		--verifier-url '$(INK_SEPOLIA_EXPLORER)' \
+		$(call get-addr,763373,YourContract) \
+		contracts/YourContract.sol:YourContract

@@ -210,7 +210,7 @@ const CreateArticle: NextPage = () => {
             Your article <span className="font-semibold">&ldquo;{title}&rdquo;</span> is now live.
           </p>
           <div className="flex gap-4 justify-center">
-            <Link href={`/${savedSlug}`} className="btn btn-primary">
+            <Link href={`/articles/${savedSlug}`} className="btn btn-primary">
               View Article
             </Link>
             <button className="btn btn-ghost" onClick={resetForm}>

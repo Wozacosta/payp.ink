@@ -2,8 +2,10 @@ import { createPublicClient, http } from "viem";
 import { foundry, inkSepolia } from "viem/chains";
 import deployedContracts from "~~/contracts/deployedContracts";
 
-const chainId = process.env.NODE_ENV === "production" ? inkSepolia.id : foundry.id;
-const chain = chainId === inkSepolia.id ? inkSepolia : foundry;
+const chains = { [foundry.id]: foundry, [inkSepolia.id]: inkSepolia } as const;
+const envChainId = process.env.NEXT_PUBLIC_TARGET_CHAIN_ID ? Number(process.env.NEXT_PUBLIC_TARGET_CHAIN_ID) : null;
+const chainId = envChainId ?? (process.env.NODE_ENV === "production" ? inkSepolia.id : foundry.id);
+const chain = chains[chainId as keyof typeof chains] ?? foundry;
 
 export const publicClient = createPublicClient({
   chain,

@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Layout:
 // pragma
@@ -65,9 +65,6 @@ contract Paypink {
     address public authorizedX402Caller;
     /// @notice Accumulated platform fees available for withdrawal.
     uint256 public ownerBalance;
-    /// @notice Total ERC-20 tokens accounted for through known payment paths.
-    uint256 public totalRecorded;
-
     mapping(bytes32 slugHash => Article) articles;
     mapping(address creator => bytes32[] slugHashes) creatorArticles;
     /// @notice Whether a reader has already paid for a given article.
@@ -121,9 +118,6 @@ contract Paypink {
     error Paypink__InvalidAddress();
     /// @notice Thrown when a non-authorized caller calls a restricted function.
     error Paypink__UnauthorizedCaller();
-    /// @notice Thrown when the contract's token balance doesn't cover the recorded amount.
-    error Paypink__InsufficientTokenBalance();
-
     /* ----- MODIFIERS ----- */
 
     modifier onlyOwner() {
@@ -209,10 +203,11 @@ contract Paypink {
         emit CreatorTipped(creator, msg.value);
     }
 
-    /// @notice Record an x402 ERC-20 payment after the facilitator has transferred tokens to this contract.
+    /// @notice Record an x402 ERC-20 payment. The x402 facilitator settles USDC on its own chain
+    ///         (e.g. Base Sepolia), so we trust the authorized caller and skip on-chain balance checks.
     /// @param slug Unique identifier of the article.
     /// @param reader Address of the reader who paid via x402.
-    /// @param amount ERC-20 amount paid.
+    /// @param amount ERC-20 amount paid (for accounting only — tokens live on the settlement chain).
     function recordX402Payment(string calldata slug, address reader, uint256 amount) external onlyAuthorizedX402Caller {
         bytes32 key = keccak256(abi.encodePacked(slug));
         Article storage article = articles[key];
@@ -223,11 +218,6 @@ contract Paypink {
             revert Paypink__AlreadyPaid();
         }
 
-        uint256 unrecorded = IERC20(paymentToken).balanceOf(address(this)) - totalRecorded;
-        if (unrecorded < amount) {
-            revert Paypink__InsufficientTokenBalance();
-        }
-
         hasPaid[key][reader] = true;
         article.views += 1;
         article.earned += amount;
@@ -236,7 +226,6 @@ contract Paypink {
         uint256 creatorShare = amount - platformShare;
         creatorTokenBalances[article.creator] += creatorShare;
         platformTokenBalance += platformShare;
-        totalRecorded += amount;
 
         emit X402PaymentRecorded(key, reader, amount);
     }
@@ -289,7 +278,7 @@ contract Paypink {
         creatorBalances[msg.sender] = 0;
 
         // interactions
-        (bool sent,) = msg.sender.call{ value: valueToWithdraw }("");
+        (bool sent,) = msg.sender.call{value: valueToWithdraw}("");
         if (!sent) {
             revert Paypink__Withdraw_FailedToSend();
         }
@@ -302,20 +291,21 @@ contract Paypink {
             revert Paypink__NothingToWithdraw();
         }
         ownerBalance = 0;
-        (bool sent,) = owner.call{ value: valueToWithdraw }("");
+        (bool sent,) = owner.call{value: valueToWithdraw}("");
         if (!sent) {
             revert Paypink__Withdraw_FailedToSend();
         }
     }
 
     /// @notice Withdraw the caller's accumulated ERC-20 earnings.
+    /// @dev In the cross-chain x402 model, tokens may not be on this chain.
+    ///      This function is kept for same-chain payment flows.
     function withdrawTokens() external {
         uint256 valueToWithdraw = creatorTokenBalances[msg.sender];
         if (valueToWithdraw == 0) {
             revert Paypink__NothingToWithdraw();
         }
         creatorTokenBalances[msg.sender] = 0;
-        totalRecorded -= valueToWithdraw;
         IERC20(paymentToken).safeTransfer(msg.sender, valueToWithdraw);
     }
 
@@ -326,7 +316,6 @@ contract Paypink {
             revert Paypink__NothingToWithdraw();
         }
         platformTokenBalance = 0;
-        totalRecorded -= valueToWithdraw;
         IERC20(paymentToken).safeTransfer(owner, valueToWithdraw);
     }
 
