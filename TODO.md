@@ -136,7 +136,7 @@ Articles are immutable after publishing — no editing the body once registered 
 ## Phase 4 — Polish & Deploy
 
 - [ ] Verify wallet connection works on Ink (Scaffold-ETH handles RainbowKit/Wagmi, just test it)
-- [ ] Add loading states for all contract interactions (pending tx toasts, skeleton loaders for data fetching)
+- [ ] Add loading states for all contract interactions (pending tx toasts, skeleon loaders for data fetching)
 - [ ] Add error handling for contract reverts, DB failures, network issues — user-facing error messages
 - [ ] Test full round-trip on local Anvil: create article → save to DB → register on-chain → pay (ETH path) → read back → verify content hash
 - [ ] Test full round-trip on local Anvil: create article → pay (x402 path) → verify `recordX402Payment` state → read back
@@ -180,7 +180,7 @@ Stack: Vitest + @testing-library/react + jsdom. Tests run without a browser — 
 - [x] Test Article Reader — auto-fetches content when user is the creator (paywall bypass)
 - [x] Test Article Reader — renders markdown content after successful fetch
 - [x] Test Article Reader — shows integrity warning when content hash mismatches
-- [x] Test Article Reader — disables both pay buttons while a payment is in progress
+- [x] Test Article Reader — disables both pay buttons while a payment is in progress`
 
 ### Server-side tests
 
@@ -188,37 +188,38 @@ Stack: Vitest + @testing-library/react + jsdom. Tests run without a browser — 
 - [x] Test `serverWallet.ts` — throws on invalid `NEXT_PUBLIC_TARGET_CHAIN_ID`
 - [x] Test `serverWallet.ts` — throws when `SERVER_WALLET_PRIVATE_KEY` is not set
 
-## Phase 4.5B — E2E Tests (Synpress + Playwright)
+## Phase 4.5B — E2E Tests (Playwright + Mock Provider)
 
-Stack: `@synthetixio/synpress` + `@playwright/test`. Automates MetaMask in a real browser against a local Anvil chain. Requires ESM (`"type": "module"` or `.mts` extensions).
+Stack: `@playwright/test` + custom mock EIP-1193 provider backed by local Anvil. No MetaMask extension needed — fully programmatic wallet connect and SIWE. CI-friendly, parallel-safe.
 
-Ref: https://synpress.io/ | https://docs.synpress.io/docs/guides/playwright
+Synpress/MetaMask approach was abandoned due to MetaMask v13 MV3 incompatibility. See `packages/nextjs/e2e/SYNPRESS_STATUS.md` for details.
 
 ### Setup
 
-- [ ] Install `@synthetixio/synpress`, `@playwright/test` in a dedicated `packages/nextjs/e2e/` directory with its own `package.json` (ESM)
-- [ ] Create wallet setup file (`e2e/wallet-setup/basic.setup.ts`) — import Anvil seed phrase, add local chain (31337)
-- [ ] Create `playwright.config.ts` — `workers: 1`, `webServer` → `yarn start`, `baseURL` → `http://localhost:3000`
-- [ ] Create shared fixture (`e2e/fixtures.ts`) wrapping MetaMask instance
-- [ ] Add `.cache-synpress/` to `.gitignore`
-- [ ] Add scripts: `yarn e2e` (headed), `yarn e2e:headless`
+- [x] Create `packages/nextjs/e2e/` directory with ESM `package.json`
+- [x] Install `@playwright/test`, Chromium browser
+- [x] Create `mock-provider.js` — EIP-1193 provider proxying to Anvil (localhost:8545)
+- [x] Create `fixtures.ts` — shared fixtures: mock provider injection, external request blocking, `connectAndSignTo()`
+- [x] Create `playwright.config.ts` — 60s timeout, 3 workers, Chromium only
+- [x] Add E2E helpers to app code: `__E2E_CONNECT__` in wagmiConfig.tsx, `injectedWallet` swap in wagmiConnectors.tsx
+- [x] Update `scaffold.config.ts` — foundry first in dev mode for correct chain targeting
+- [x] Deploy Paypink contract to local Anvil (`yarn deploy`)
 
 ### Core flow tests
 
-- [ ] Test: connect wallet via RainbowKit, verify connected state
-- [ ] Test: SIWE sign-in — connect → sign message → verify session
-- [ ] Test: create article — fill form → save draft → register on-chain → confirm tx → article published
-- [ ] Test: read free article — navigate to article → content loads without payment
+- [x] Test: connect wallet + SIWE sign-in — programmatic connect → programmatic SIWE → verify session
+- [x] Test: create free article — fill form → publish → view article → content loads
+- [x] Test: show created article on list page — create → navigate to /articles → verify listing
+- [x] Test: create paid article and view as creator — creator bypass, content loads without payment
+- [x] Test: show paywall for paid article — verify price badge visible for unauthenticated reader
 - [ ] Test: pay with ETH — navigate to paid article → paywall → click "Pay ETH" → confirm tx → content loads
 - [ ] Test: pay with USDC (x402) — switch to Base Sepolia → approve → content loads → switch back
-- [ ] Test: creator bypass — creator navigates to own paid article → content loads without payment
 - [ ] Test: content integrity — verify "Verified" badge appears on article with matching hash
 
 ### Stretch
 
 - [ ] Test: tip by slug — tip via article page, verify on-chain balance update
 - [ ] Test: creator withdrawal — creator withdraws ETH earnings
-- [ ] Test: `EthereumWalletMock` variant for CI — parallel, no real MetaMask, faster
 
 ## Phase 5 — Future Enhancements
 
@@ -228,6 +229,7 @@ Ref: https://synpress.io/ | https://docs.synpress.io/docs/guides/playwright
 - [ ] Farcaster Frame for paying for content via Ink contracts
 - [ ] Add explicit `ReentrancyGuard` (OpenZeppelin) — belt-and-suspenders on top of existing CEI pattern
 - [ ] IPFS/Pinata for decentralized content permanence (store body on IPFS, `contentHash` becomes CID)
+- [ ] Preview of the gated content? 
 
 ## Phase 6 — Chainlink Integrations
 

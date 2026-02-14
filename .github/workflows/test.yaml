@@ -133,3 +133,103 @@ jobs:
 
       - name: Run nextjs tests
         run: yarn next:test
+
+  nextjs-e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: paypink_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/paypink_test
+      NEXTAUTH_SECRET: e2e-test-secret-at-least-32-characters
+      NEXTAUTH_URL: http://localhost:3000
+      SERVER_WALLET_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+        with:
+          submodules: recursive
+
+      - name: Setup node env
+        uses: actions/setup-node@v3
+        with:
+          node-version: lts/*
+          cache: yarn
+
+      - name: Install foundry-toolchain
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: 1.5.1
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Install E2E dependencies
+        working-directory: packages/nextjs/e2e
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: packages/nextjs/e2e
+        run: npx playwright install chromium --with-deps
+
+      - name: Start Anvil and deploy contracts
+        run: |
+          yarn chain > /tmp/anvil.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -s -X POST -H 'Content-Type: application/json' \
+              --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":1}' \
+              http://127.0.0.1:8545 > /dev/null 2>&1 && break
+            sleep 1
+          done
+          curl -s -X POST -H 'Content-Type: application/json' \
+            --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":1}' \
+            http://127.0.0.1:8545 > /dev/null 2>&1 || { echo "Anvil failed to start"; cat /tmp/anvil.log; exit 1; }
+          yarn deploy
+
+      - name: Apply database schema
+        working-directory: packages/nextjs
+        run: npx drizzle-kit push --force
+
+      - name: Start Next.js dev server
+        working-directory: packages/nextjs
+        run: |
+          yarn dev > /tmp/nextjs.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -s http://localhost:3000 > /dev/null 2>&1 && break
+            sleep 2
+          done
+          curl -s http://localhost:3000 > /dev/null 2>&1 || { echo "Next.js failed to start"; cat /tmp/nextjs.log; exit 1; }
+
+      - name: Run E2E tests
+        working-directory: packages/nextjs/e2e
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: packages/nextjs/e2e/test-report/
+          retention-days: 14
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: packages/nextjs/e2e/test-results/
+          retention-days: 7

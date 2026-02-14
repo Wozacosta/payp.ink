@@ -1,6 +1,7 @@
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
 import {
   baseAccount,
+  injectedWallet,
   ledgerWallet,
   metaMaskWallet,
   rainbowWallet,
@@ -13,18 +14,6 @@ import scaffoldConfig from "~~/scaffold.config";
 
 const { onlyLocalBurnerWallet, targetNetworks } = scaffoldConfig;
 
-const wallets = [
-  metaMaskWallet,
-  walletConnectWallet,
-  ledgerWallet,
-  baseAccount,
-  rainbowWallet,
-  safeWallet,
-  ...(!targetNetworks.some(network => network.id !== (chains.hardhat as chains.Chain).id) || !onlyLocalBurnerWallet
-    ? [rainbowkitBurnerWallet]
-    : []),
-];
-
 /**
  * wagmi connectors for the wagmi context
  */
@@ -34,6 +23,26 @@ export const wagmiConnectors = () => {
   if (typeof window === "undefined") {
     return [];
   }
+
+  // In E2E tests the mock provider sets this flag before any app JS runs.
+  // We swap the full wallet list for a single injectedWallet that reads
+  // directly from window.ethereum — no MetaMask SDK involved.
+  const isE2E = !!(window as any).__E2E_TESTING__;
+
+  const wallets = isE2E
+    ? [injectedWallet]
+    : [
+        metaMaskWallet,
+        walletConnectWallet,
+        ledgerWallet,
+        baseAccount,
+        rainbowWallet,
+        safeWallet,
+        ...(!targetNetworks.some(network => network.id !== (chains.hardhat as chains.Chain).id) ||
+        !onlyLocalBurnerWallet
+          ? [rainbowkitBurnerWallet]
+          : []),
+      ];
 
   return connectorsForWallets(
     [

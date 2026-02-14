@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
 import { GetSiweMessageOptions, RainbowKitSiweNextAuthProvider } from "@rainbow-me/rainbowkit-siwe-next-auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { SessionProvider } from "next-auth/react";
+import { SessionProvider, getSession } from "next-auth/react";
 import { AppProgressBar as ProgressBar } from "next-nprogress-bar";
 import { useTheme } from "next-themes";
 import { Toaster } from "react-hot-toast";
@@ -46,6 +46,10 @@ export const ScaffoldEthAppWithProviders = ({ children }: { children: React.Reac
 
   useEffect(() => {
     setMounted(true);
+    // Expose session helpers for E2E programmatic SIWE
+    if ((window as any).__E2E_TESTING__) {
+      (window as any).__GET_SESSION__ = getSession;
+    }
   }, []);
 
   return (

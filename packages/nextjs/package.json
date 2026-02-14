@@ -15,6 +15,9 @@
     "vercel:login": "vercel login",
     "test": "vitest run",
     "test:watch": "vitest",
+    "e2e": "cd e2e && npm run e2e",
+    "e2e:headless": "cd e2e && npm run e2e:headless",
+    "e2e:cache": "cd e2e && npm run build:cache",
     "vercel:yolo": "vercel --build-env YARN_ENABLE_IMMUTABLE_INSTALLS=false --build-env ENABLE_EXPERIMENTAL_COREPACK=1 --build-env NEXT_PUBLIC_IGNORE_BUILD_ERROR=true --build-env VERCEL_TELEMETRY_DISABLED=1"
   },
   "dependencies": {
