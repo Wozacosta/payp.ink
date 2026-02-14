@@ -54,11 +54,16 @@ export async function GET(req: NextRequest) {
           });
         }
         console.log(`[x402] Free article "${slug}" not found in DB or not published`);
+        return NextResponse.json({ error: "Article not found" }, { status: 404 });
       }
     } catch (e) {
       console.error(`[x402] Error checking price for "${slug}":`, e);
       // Fall through to x402 handler
     }
+  }
+
+  if (!paypinkContract) {
+    return NextResponse.json({ error: "Contract not configured" }, { status: 500 });
   }
 
   return x402Handler(req);

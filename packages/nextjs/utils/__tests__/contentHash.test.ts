@@ -1,6 +1,6 @@
-import { computeContentHash, verifyContentIntegrity } from "../contentHash";
 import { keccak256, toHex } from "viem";
 import { describe, expect, it } from "vitest";
+import { computeContentHash, verifyContentIntegrity } from "~~/utils/contentHash";
 
 describe("computeContentHash", () => {
   it("returns keccak256 of the body as hex", () => {

@@ -17,7 +17,7 @@ const ArticlesPage: NextPage = async () => {
     .orderBy(desc(articles.createdAt));
 
   return (
-    <div className="flex flex-col grow px-4 py-8 max-w-3xl mx-auto w-full">
+    <div className="container mx-auto py-8 px-4 max-w-3xl grow">
       <h1 className="text-2xl font-bold mb-6">Articles</h1>
 
       {published.length === 0 ? (
@@ -28,7 +28,7 @@ const ArticlesPage: NextPage = async () => {
             <Link
               key={article.slug}
               href={`/articles/${article.slug}`}
-              className="card bg-base-100 shadow-sm border border-base-300 hover:shadow-md transition-shadow"
+              className="card card-bordered bg-base-100 shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="card-body p-5">
                 <h2 className="card-title text-lg">{article.title}</h2>

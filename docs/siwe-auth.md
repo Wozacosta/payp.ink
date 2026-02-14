@@ -21,7 +21,7 @@ SIWE is the authentication layer for all write operations (creating articles, pu
 
 ### Flow
 
-```
+```text
 1. User clicks "Connect" in RainbowKit
 2. RainbowKitSiweNextAuthProvider prompts a SIWE signature
    - Message says: "Sign in to payp.ink"

@@ -65,7 +65,7 @@ INK_SEPOLIA_EXPLORER = https://explorer-sepolia.inkonchain.com/api/
 # Extract deployed contract address by chain ID and name from deployedContracts.ts
 # Usage: $(call get-addr,763373,Paypink)
 define get-addr
-$(shell node -p "const fs=require('fs');const src=fs.readFileSync('../nextjs/contracts/deployedContracts.ts','utf8');const m=src.match(new RegExp('$(1):[\\\\s\\\\S]*?$(2):[\\\\s\\\\S]*?address:\\\\s*\"(0x[a-f0-9]+)\"'));m?m[1]:'NOT_FOUND'")
+$(shell node -p "const fs=require('fs');const src=fs.readFileSync('../nextjs/contracts/deployedContracts.ts','utf8');const m=src.match(new RegExp('$(1):[\\\\s\\\\S]*?$(2):[\\\\s\\\\S]*?address:\\\\s*\"(0x[A-Fa-f0-9]+)\"'));m?m[1]:'NOT_FOUND'")
 endef
 
 verify-ink-sepolia: verify-ink-sepolia-paypink verify-ink-sepolia-yourcontract

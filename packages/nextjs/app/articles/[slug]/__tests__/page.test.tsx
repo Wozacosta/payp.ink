@@ -1,7 +1,7 @@
 // --- Import component statically (mocks are hoisted above) ---
 import ArticlePage from "../page";
 import { render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mock external dependencies ---
 
@@ -112,7 +112,11 @@ function setupMocks(
 describe("ArticlePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn();
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("shows loading spinner while article data is loading", () => {
@@ -255,7 +259,7 @@ describe("ArticlePage", () => {
     });
   });
 
-  it("disables both pay buttons while a payment is in progress", async () => {
+  it("enables both pay buttons when no payment is in progress", async () => {
     setupMocks({ hasPaid: false });
     render(<ArticlePage />);
 
@@ -267,7 +271,8 @@ describe("ArticlePage", () => {
       .getAllByRole("button")
       .filter(b => b.textContent?.includes("ETH") || b.textContent?.includes("USDC"));
     expect(payButtons).toHaveLength(2);
-    // Buttons should be enabled when no payment in progress
-    payButtons.forEach(btn => expect(btn).not.toBeDisabled());
+    for (const btn of payButtons) {
+      expect(btn).not.toBeDisabled();
+    }
   });
 });
