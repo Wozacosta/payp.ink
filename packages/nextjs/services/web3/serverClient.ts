@@ -19,7 +19,7 @@ const CHAIN = CHAINS[CHAIN_ID as keyof typeof CHAINS];
 
 export const publicClient = createPublicClient({
   chain: CHAIN,
-  transport: http(),
+  transport: http(undefined, { timeout: 10_000 }),
 });
 
 const contracts = deployedContracts[CHAIN_ID as keyof typeof deployedContracts];

@@ -82,7 +82,7 @@ const ArticlePage: NextPage = () => {
     setFetchError("");
 
     try {
-      const res = await fetch(`/api/articles/${slug}`);
+      const res = await fetch(`/api/articles/${slug}`, { signal: AbortSignal.timeout(15_000) });
 
       if (res.status === 402) {
         setFetchStatus("paywall");

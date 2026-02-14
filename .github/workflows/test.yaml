@@ -214,6 +214,14 @@ jobs:
           done
           curl -s http://localhost:3000 > /dev/null 2>&1 || { echo "Next.js failed to start"; cat /tmp/nextjs.log; exit 1; }
 
+      - name: Warm up Next.js routes
+        run: |
+          # Pre-compile key routes so on-demand compilation doesn't stall E2E tests
+          curl -s http://localhost:3000/create > /dev/null 2>&1 || true
+          curl -s http://localhost:3000/articles > /dev/null 2>&1 || true
+          curl -s http://localhost:3000/articles/warmup > /dev/null 2>&1 || true
+          curl -s http://localhost:3000/api/articles/warmup > /dev/null 2>&1 || true
+
       - name: Run E2E tests
         working-directory: packages/nextjs/e2e
         run: npx playwright test

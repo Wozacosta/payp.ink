@@ -6,27 +6,6 @@ function slug(prefix: string) {
 }
 
 /**
- * Navigate to an article page and wait for it to finish loading.
- *
- * The article reader page goes through: loading spinner → one of:
- *   - Full article content (shows <article> with prose)
- *   - Paywall (shows "This article requires payment")
- *   - "Article Not Found"
- *   - Error state
- *
- * We wait for any terminal state indicator to appear, which means
- * both the on-chain read and API fetch have completed.
- */
-async function waitForArticlePage(page: import("@playwright/test").Page, articleSlug: string) {
-  await page.waitForURL(`/articles/${articleSlug}`);
-  // Wait for one of the terminal states — the page has resolved its data
-  await page
-    .locator("article.prose, :text('Article Not Found'), :text('requires payment'), :text('Error')")
-    .first()
-    .waitFor({ timeout: 30_000 });
-}
-
-/**
  * Helper: create and publish an article within a single connected session.
  */
 async function createArticle(
@@ -51,6 +30,11 @@ test.describe("Article Flow", () => {
   // All tests share the same Anvil account (0xf39F...). Running in parallel
   // causes nonce conflicts when multiple registerArticle txs fire concurrently.
   test.describe.configure({ mode: "serial" });
+
+  // CI runners are slow: on-demand compilation + on-chain reads + API fetch.
+  test.setTimeout(90_000);
+  const CONTENT_TIMEOUT = 30_000;
+
   test("should create a free article and read its content", async ({ page }) => {
     const s = slug("free");
     await connectAndSignTo(page, "/create");
@@ -63,9 +47,9 @@ test.describe("Article Flow", () => {
 
     // View the article
     await page.getByRole("link", { name: "View Article" }).click();
-    await waitForArticlePage(page, s);
+    await page.waitForURL(`/articles/${s}`);
 
-    await expect(page.getByText("Hello World")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Hello World")).toBeVisible({ timeout: CONTENT_TIMEOUT });
     await expect(page.getByText("This is a free test article.")).toBeVisible();
   });
 
@@ -98,9 +82,9 @@ test.describe("Article Flow", () => {
 
     // Creator can view (creator bypass)
     await page.getByRole("link", { name: "View Article" }).click();
-    await waitForArticlePage(page, s);
+    await page.waitForURL(`/articles/${s}`);
 
-    await expect(page.getByText("Secret Content")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Secret Content")).toBeVisible({ timeout: CONTENT_TIMEOUT });
     await expect(page.getByText("ETH").first()).toBeVisible();
   });
 
@@ -117,9 +101,9 @@ test.describe("Article Flow", () => {
 
     // Creator can view — verify price badge as proxy for paywall setup
     await page.getByRole("link", { name: "View Article" }).click();
-    await waitForArticlePage(page, s);
+    await page.waitForURL(`/articles/${s}`);
 
-    await expect(page.getByText("0.001")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("0.001")).toBeVisible({ timeout: CONTENT_TIMEOUT });
     await expect(page.getByText("ETH").first()).toBeVisible();
   });
 });
