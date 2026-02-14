@@ -1,4 +1,4 @@
-import { createPublicClient, encodePacked, http, keccak256 } from "viem";
+import { createPublicClient, http } from "viem";
 import { foundry, inkSepolia } from "viem/chains";
 import deployedContracts from "~~/contracts/deployedContracts";
 
@@ -19,6 +19,4 @@ if (!paypink) {
 
 export const paypinkContract = paypink ? { address: paypink.address as `0x${string}`, abi: paypink.abi } : undefined;
 
-export function getSlugHash(slug: string) {
-  return keccak256(encodePacked(["string"], [slug]));
-}
+export { getSlugHash } from "./slugHash";
