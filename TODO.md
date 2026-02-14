@@ -148,7 +148,77 @@ Articles are immutable after publishing — no editing the body once registered 
 - [ ] Replace raw `SERVER_WALLET_PRIVATE_KEY` with Foundry keystore — use `cast wallet import` to encrypt the key on disk, swap the env var for `SERVER_WALLET_KEYSTORE_PASSWORD`, and decrypt at server startup. Eliminates plaintext private keys from `.env`. For production: graduate to AWS KMS, GCP KMS, or Coinbase CDP managed wallets.
 - [ ] Environment strategy: separate `.env.local` / `.env.production` for Anvil vs Ink Sepolia vs Ink mainnet (different contract addresses, DB URLs, RPC endpoints)
 
-- [ ] e2e with https://synpress.io/
+## Phase 4.5A — Frontend Unit & Component Tests (Vitest + React Testing Library)
+
+Stack: Vitest + @testing-library/react + jsdom. Tests run without a browser — fast, parallelizable, no wallet extension needed.
+
+### Setup
+
+- [x] Install vitest, @testing-library/react, @testing-library/jest-dom, jsdom in `packages/nextjs`
+- [x] Create `vitest.config.ts` with jsdom environment, path alias (`~~`), and setup file
+- [x] Create test setup file (`vitest.setup.ts`) importing `@testing-library/jest-dom`
+- [x] Add `"test"` script to `packages/nextjs/package.json` and wire up root `package.json`
+
+### Utility tests
+
+- [x] Test `slugHash.ts` — `getSlugHash` returns correct keccak256 for known inputs
+- [x] Test `contentHash.ts` — `verifyContentIntegrity` returns true for matching hash, false for mismatch
+
+### API route tests
+
+- [ ] Test `GET /api/articles/[slug]/x402` — free article bypass serves content when article is registered on-chain
+- [ ] Test `GET /api/articles/[slug]/x402` — returns 404 when article is not registered on-chain (creator is zero address)
+- [ ] Test `GET /api/articles/[slug]/x402` — paid article falls through to x402 handler
+
+### Component tests
+
+- [x] Test Article Reader — shows loading spinner while article data is loading
+- [x] Test Article Reader — shows "Article Not Found" when creator is zero address
+- [x] Test Article Reader — shows paywall when `hasPaid === false` and article is paid
+- [x] Test Article Reader — shows "Connect your wallet" / "Sign in" prompts on paywall
+- [x] Test Article Reader — auto-fetches content when article is free
+- [x] Test Article Reader — auto-fetches content when user is the creator (paywall bypass)
+- [x] Test Article Reader — renders markdown content after successful fetch
+- [x] Test Article Reader — shows integrity warning when content hash mismatches
+- [x] Test Article Reader — disables both pay buttons while a payment is in progress
+
+### Server-side tests
+
+- [x] Test `serverClient.ts` — throws on invalid `NEXT_PUBLIC_TARGET_CHAIN_ID`
+- [x] Test `serverWallet.ts` — throws on invalid `NEXT_PUBLIC_TARGET_CHAIN_ID`
+- [x] Test `serverWallet.ts` — throws when `SERVER_WALLET_PRIVATE_KEY` is not set
+
+## Phase 4.5B — E2E Tests (Synpress + Playwright)
+
+Stack: `@synthetixio/synpress` + `@playwright/test`. Automates MetaMask in a real browser against a local Anvil chain. Requires ESM (`"type": "module"` or `.mts` extensions).
+
+Ref: https://synpress.io/ | https://docs.synpress.io/docs/guides/playwright
+
+### Setup
+
+- [ ] Install `@synthetixio/synpress`, `@playwright/test` in a dedicated `packages/nextjs/e2e/` directory with its own `package.json` (ESM)
+- [ ] Create wallet setup file (`e2e/wallet-setup/basic.setup.ts`) — import Anvil seed phrase, add local chain (31337)
+- [ ] Create `playwright.config.ts` — `workers: 1`, `webServer` → `yarn start`, `baseURL` → `http://localhost:3000`
+- [ ] Create shared fixture (`e2e/fixtures.ts`) wrapping MetaMask instance
+- [ ] Add `.cache-synpress/` to `.gitignore`
+- [ ] Add scripts: `yarn e2e` (headed), `yarn e2e:headless`
+
+### Core flow tests
+
+- [ ] Test: connect wallet via RainbowKit, verify connected state
+- [ ] Test: SIWE sign-in — connect → sign message → verify session
+- [ ] Test: create article — fill form → save draft → register on-chain → confirm tx → article published
+- [ ] Test: read free article — navigate to article → content loads without payment
+- [ ] Test: pay with ETH — navigate to paid article → paywall → click "Pay ETH" → confirm tx → content loads
+- [ ] Test: pay with USDC (x402) — switch to Base Sepolia → approve → content loads → switch back
+- [ ] Test: creator bypass — creator navigates to own paid article → content loads without payment
+- [ ] Test: content integrity — verify "Verified" badge appears on article with matching hash
+
+### Stretch
+
+- [ ] Test: tip by slug — tip via article page, verify on-chain balance update
+- [ ] Test: creator withdrawal — creator withdraws ETH earnings
+- [ ] Test: `EthereumWalletMock` variant for CI — parallel, no real MetaMask, faster
 
 ## Phase 5 — Future Enhancements
 
