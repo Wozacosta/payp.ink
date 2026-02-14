@@ -3,12 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Address } from "@scaffold-ui/components";
+import { x402Client } from "@x402/core/client";
+import { registerExactEvmScheme } from "@x402/evm/exact/client";
+import { wrapFetchWithPayment } from "@x402/fetch";
 import type { NextPage } from "next";
 import { useSession } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { formatEther } from "viem";
-import { useAccount } from "wagmi";
+import { formatEther, formatUnits } from "viem";
+import { baseSepolia } from "viem/chains";
+import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { getSlugHash } from "~~/services/web3/slugHash";
 import { verifyContentIntegrity } from "~~/utils/contentHash";
@@ -23,7 +27,9 @@ type ArticleContent = {
 
 const ArticlePage: NextPage = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { address } = useAccount();
+  const { address, chainId: activeChainId } = useAccount();
+  const { data: walletClient } = useWalletClient();
+  const { switchChainAsync } = useSwitchChain();
   const { data: session } = useSession();
 
   const [articleContent, setArticleContent] = useState<ArticleContent | null>(null);
@@ -53,6 +59,7 @@ const ArticlePage: NextPage = () => {
 
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "Paypink" });
 
+  const isPaying = payingEth || payingUsdc;
   const isFree = onChainArticle ? onChainArticle.price === 0n : false;
   const isCreator = !!address && onChainArticle?.creator?.toLowerCase() === address.toLowerCase();
   const canAccessContent = isFree || hasPaid || isCreator;
@@ -138,11 +145,36 @@ const ArticlePage: NextPage = () => {
     }
   };
 
-  // Pay with USDC (x402)
+  // Pay with USDC (x402) — requires Base Sepolia
   const handlePayUsdc = async () => {
+    if (!walletClient || !address) {
+      notification.error("Wallet not connected.");
+      return;
+    }
+
     setPayingUsdc(true);
+    const previousChainId = activeChainId;
     try {
-      const res = await fetch(`/api/articles/${slug}/x402`);
+      // x402 settles on Base Sepolia — switch chain if needed
+      if (activeChainId !== baseSepolia.id) {
+        await switchChainAsync({ chainId: baseSepolia.id });
+      }
+
+      const signer = {
+        address: address as `0x${string}`,
+        signTypedData: (msg: {
+          domain: Record<string, unknown>;
+          types: Record<string, unknown>;
+          primaryType: string;
+          message: Record<string, unknown>;
+        }) => walletClient.signTypedData(msg as any),
+      };
+
+      const client = new x402Client();
+      registerExactEvmScheme(client, { signer });
+      const fetchWithPayment = wrapFetchWithPayment(fetch, client);
+
+      const res = await fetchWithPayment(`/api/articles/${slug}/x402`);
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Payment failed" }));
@@ -156,9 +188,14 @@ const ArticlePage: NextPage = () => {
       notification.success("Payment successful!");
       await refetchHasPaid();
       checkIntegrity(data.body);
-    } catch {
-      notification.error("Network error during USDC payment.");
+    } catch (e: unknown) {
+      const message = (e as any)?.shortMessage || (e instanceof Error ? e.message : "USDC payment failed.");
+      notification.error(message);
     } finally {
+      // Switch back to the original chain
+      if (previousChainId && previousChainId !== baseSepolia.id) {
+        await switchChainAsync({ chainId: previousChainId }).catch(() => {});
+      }
       setPayingUsdc(false);
     }
   };
@@ -210,7 +247,8 @@ const ArticlePage: NextPage = () => {
           <div className="card-body items-center text-center">
             <h2 className="card-title text-xl">This article requires payment</h2>
             <p className="text-base-content/70 mb-4">
-              Pay {formatEther(onChainArticle.price)} ETH to read the full article.
+              Pay {formatEther(onChainArticle.price)} ETH or ${formatUnits(onChainArticle.price, 18)} USDC to read the
+              full article.
             </p>
 
             {fetchError && <p className="text-error text-sm mb-2">{fetchError}</p>}
@@ -221,7 +259,7 @@ const ArticlePage: NextPage = () => {
               <p className="text-base-content/70">Sign in with your wallet to pay.</p>
             ) : (
               <div className="flex gap-4">
-                <button className="btn btn-primary" onClick={handlePayEth} disabled={payingEth}>
+                <button className="btn btn-primary" onClick={handlePayEth} disabled={isPaying}>
                   {payingEth ? (
                     <>
                       <span className="loading loading-spinner loading-sm"></span>
@@ -231,14 +269,14 @@ const ArticlePage: NextPage = () => {
                     `Pay ${formatEther(onChainArticle.price)} ETH`
                   )}
                 </button>
-                <button className="btn btn-secondary" onClick={handlePayUsdc} disabled={payingUsdc}>
+                <button className="btn btn-secondary" onClick={handlePayUsdc} disabled={isPaying}>
                   {payingUsdc ? (
                     <>
                       <span className="loading loading-spinner loading-sm"></span>
                       Paying...
                     </>
                   ) : (
-                    "Pay with USDC"
+                    `Pay $${formatUnits(onChainArticle.price, 18)} USDC`
                   )}
                 </button>
               </div>

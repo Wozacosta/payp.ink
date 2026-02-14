@@ -110,11 +110,11 @@ Articles are immutable after publishing — no editing the body once registered 
 
 ### Article Reader page (`/[slug]`)
 
-- [ ] Build preview route (`/[slug]`) — shows article metadata (title, creator, price) from contract, truncated preview or summary, two payment buttons
-- [ ] "Pay with ETH" button — calls `payForArticle()` on contract, on success redirects to `/[slug]/full` which fetches from `GET /api/articles/[slug]` (checks `hasPaid` on-chain)
-- [ ] "Pay with USDC" button — uses thirdweb's `useFetchWithPayment` hook to fetch from `GET /api/articles/[slug]/x402`. Handles the 402 flow automatically.
-- [ ] Render article body as markdown (use `react-markdown` or similar)
-- [ ] Content integrity verification — hash the received body, compare to on-chain `contentHash`, show warning if mismatch
+- [x] Build preview route (`/[slug]`) — shows article metadata (title, creator, price) from contract, truncated preview or summary, two payment buttons
+- [x] "Pay with ETH" button — calls `payForArticle()` on contract, on success fetches full content from `GET /api/articles/[slug]` (checks `hasPaid` on-chain)
+- [x] "Pay with USDC" button — fetches from `GET /api/articles/[slug]/x402`. Handles the 402 flow via x402-next.
+- [x] Render article body as markdown (use `react-markdown` + `remark-gfm`)
+- [x] Content integrity verification — hash the received body, compare to on-chain `contentHash`, show warning if mismatch
 
 ### Tip component
 
@@ -130,7 +130,7 @@ Articles are immutable after publishing — no editing the body once registered 
 
 ### Article discovery
 
-- [ ] Build a simple "recent articles" listing page — query DB for published articles, show title + creator + price. Link to `/[slug]`
+- [x] Build a simple "recent articles" listing page — query DB for published articles, show title + creator + price. Link to `/[slug]`
 - [ ] (Optional) "Browse by creator" page
 
 ## Phase 4 — Polish & Deploy

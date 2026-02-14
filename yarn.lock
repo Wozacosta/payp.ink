@@ -3584,6 +3584,8 @@ __metadata:
     "@trivago/prettier-plugin-sort-imports": ~4.3.0
     "@types/node": ~18.19.50
     "@types/react": ~19.0.7
+    "@x402/evm": ^2.3.1
+    "@x402/fetch": ^2.3.0
     abitype: 1.0.6
     autoprefixer: ~10.4.20
     bgipfs: ~0.0.12
@@ -6053,6 +6055,37 @@ __metadata:
     multiformats: ^13.3.1
     uint8arrays: ^5.1.0
   checksum: 547d30007132bbfeaf3c0af608db05f2bda595525a269077d9b19add11e513e7d0290b2cea63db1e33dbf7eb919c99d71d448f83591a27786e3627c8cbf9d10f
+  languageName: node
+  linkType: hard
+
+"@x402/core@npm:~2.3.0, @x402/core@npm:~2.3.1":
+  version: 2.3.1
+  resolution: "@x402/core@npm:2.3.1"
+  dependencies:
+    zod: ^3.24.2
+  checksum: f0519f6e5e513ee5344f8d33ce5ffd84dff35c2a606121701d00cba00850dc386af7cc202333cb7fc4aca8bd6d0ae1bab92cd5ab5c2f2a2326ff3dbbf7223bc7
+  languageName: node
+  linkType: hard
+
+"@x402/evm@npm:^2.3.1":
+  version: 2.3.1
+  resolution: "@x402/evm@npm:2.3.1"
+  dependencies:
+    "@x402/core": ~2.3.1
+    viem: ^2.39.3
+    zod: ^3.24.2
+  checksum: 5765bdb1bc48ba6636deda25dd4551fe6c5998cb1009a8704f2e6b4b5d3cd90d0cdfcfefc613a2ad2d4a7bb66571c8573657908f8feb2bda764f90178bc2e8b8
+  languageName: node
+  linkType: hard
+
+"@x402/fetch@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "@x402/fetch@npm:2.3.0"
+  dependencies:
+    "@x402/core": ~2.3.0
+    viem: ^2.39.3
+    zod: ^3.24.2
+  checksum: 39b2bab6bcbf6e3cc9a83131828aa7852fe72149d4e271843e5df374f0025613317a68c8b8830a16ac362171bd67e2b23ff0ad8b4961489d4c997738000e54b0
   languageName: node
   linkType: hard
 
@@ -13954,6 +13987,27 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ox@npm:0.12.1":
+  version: 0.12.1
+  resolution: "ox@npm:0.12.1"
+  dependencies:
+    "@adraffy/ens-normalize": ^1.11.0
+    "@noble/ciphers": ^1.3.0
+    "@noble/curves": 1.9.1
+    "@noble/hashes": ^1.8.0
+    "@scure/bip32": ^1.7.0
+    "@scure/bip39": ^1.6.0
+    abitype: ^1.2.3
+    eventemitter3: 5.0.1
+  peerDependencies:
+    typescript: ">=5.4.0"
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  checksum: b0d8db4cfe5f24d172e96e0f84cd7078495177d395e13edd91c1af4268700daaf3c45713b9f7595c50a151ef5dd7180f83bd4372b6747b10e47c958ce2e3daa0
+  languageName: node
+  linkType: hard
+
 "ox@npm:0.6.7":
   version: 0.6.7
   resolution: "ox@npm:0.6.7"
@@ -17594,6 +17648,27 @@ __metadata:
     typescript:
       optional: true
   checksum: 5207f8e5c9ae33ca928094f97ce68c739d9b32ff35646f00c699a74431e518fbcf828bbe3ed0d054bc02437c0fbe0b3b41a4c5439135954b3804785fb985dfd5
+  languageName: node
+  linkType: hard
+
+"viem@npm:^2.39.3":
+  version: 2.45.3
+  resolution: "viem@npm:2.45.3"
+  dependencies:
+    "@noble/curves": 1.9.1
+    "@noble/hashes": 1.8.0
+    "@scure/bip32": 1.7.0
+    "@scure/bip39": 1.6.0
+    abitype: 1.2.3
+    isows: 1.0.7
+    ox: 0.12.1
+    ws: 8.18.3
+  peerDependencies:
+    typescript: ">=5.0.4"
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  checksum: c8fa7c1763a095e906a6afdce823c6a556871862279980dd328b95f02e07a01caf72ad25512e1fcbf49310c89086e22f9c7ad4dc88995661bdfd6f4953155926
   languageName: node
   linkType: hard
 
