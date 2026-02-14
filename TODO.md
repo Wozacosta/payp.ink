@@ -145,7 +145,7 @@ Articles are immutable after publishing — no editing the body once registered 
 - [ ] Deploy contracts to Ink mainnet
 - [ ] Deploy frontend to Vercel
 - [ ] Wire up production env vars: RPC URLs, contract addresses, `DATABASE_URL`
-- [ ] Replace raw `SERVER_WALLET_PRIVATE_KEY` with proper key management (AWS KMS, GCP KMS, Thirdweb Engine, or Coinbase CDP managed wallets). Raw private key in env is OK for local Anvil dev only — never for production.
+- [ ] Replace raw `SERVER_WALLET_PRIVATE_KEY` with Foundry keystore — use `cast wallet import` to encrypt the key on disk, swap the env var for `SERVER_WALLET_KEYSTORE_PASSWORD`, and decrypt at server startup. Eliminates plaintext private keys from `.env`. For production: graduate to AWS KMS, GCP KMS, or Coinbase CDP managed wallets.
 - [ ] Environment strategy: separate `.env.local` / `.env.production` for Anvil vs Ink Sepolia vs Ink mainnet (different contract addresses, DB URLs, RPC endpoints)
 
 ## Phase 5 — Future Enhancements
