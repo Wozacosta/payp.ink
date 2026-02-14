@@ -7,7 +7,7 @@
 - [x] Verify the dev environment works: `yarn chain`, `yarn deploy`, `yarn start`
 - [x] Update `foundry.toml` to target Ink L2 (add Ink RPC + chain ID)
 - [x] Add Ink to the Scaffold-ETH network config (`scaffold.config.ts`)
-- [ ] Set up `.env` files for deployer private key, Ink RPC URL
+- [x] Set up `.env` files for deployer private key, Ink RPC URL
 
 ## Phase 1 — Smart Contracts (ETH payments)
 
@@ -26,7 +26,7 @@
 
 Decision: Two payment paths, single source of truth. Readers can pay via on-chain `payForArticle()` (ETH) or via x402 protocol (ERC-20 stablecoins). Both paths converge on the same `Paypink.sol` contract state — `hasPaid`, `views`, `earned`, and creator/platform balances are unified.
 
-x402 settlement: thirdweb's x402 facilitator transfers ERC-20 tokens directly to `Paypink.sol` (the `payTo` address). After settlement, the backend calls `recordX402Payment()` to record the payment on-chain. A balance check (`token.balanceOf(this) - totalRecorded[token] >= amount`) prevents fake recordings.
+x402 settlement: the x402 facilitator settles USDC on Base Sepolia (the only chain x402 supports). After settlement, the backend calls `recordX402Payment()` on the Paypink contract (Ink Sepolia) to record the payment. Because settlement and recording happen on different chains, the on-chain balance check is skipped — the `onlyAuthorizedX402Caller` modifier is the primary defense. Proper cross-chain verification deferred to Phase 6.5 (CCIP).
 
 Articles are immutable after on-chain registration (no `updateContentHash`). If a creator wants to change content, they register a new article with a new slug. V2: add `updateContentHash(slug, newHash)` (creator-only) to support editing.
 
@@ -141,12 +141,14 @@ Articles are immutable after publishing — no editing the body once registered 
 - [ ] Test full round-trip on local Anvil: create article → save to DB → register on-chain → pay (ETH path) → read back → verify content hash
 - [ ] Test full round-trip on local Anvil: create article → pay (x402 path) → verify `recordX402Payment` state → read back
 - [ ] Test withdrawal flows: creator ETH withdrawal, creator ERC-20 withdrawal, platform withdrawals
-- [ ] Test on Ink Sepolia testnet (or Sepolia if no Ink testnet available)
+- [x] Test on Ink Sepolia testnet (or Sepolia if no Ink testnet available)
 - [ ] Deploy contracts to Ink mainnet
 - [ ] Deploy frontend to Vercel
 - [ ] Wire up production env vars: RPC URLs, contract addresses, `DATABASE_URL`
 - [ ] Replace raw `SERVER_WALLET_PRIVATE_KEY` with Foundry keystore — use `cast wallet import` to encrypt the key on disk, swap the env var for `SERVER_WALLET_KEYSTORE_PASSWORD`, and decrypt at server startup. Eliminates plaintext private keys from `.env`. For production: graduate to AWS KMS, GCP KMS, or Coinbase CDP managed wallets.
 - [ ] Environment strategy: separate `.env.local` / `.env.production` for Anvil vs Ink Sepolia vs Ink mainnet (different contract addresses, DB URLs, RPC endpoints)
+
+- [ ] e2e with https://synpress.io/
 
 ## Phase 5 — Future Enhancements
 

@@ -25,8 +25,11 @@ contract DeployPaypink is ScaffoldETHDeploy {
      *      - Export contract addresses & ABIs to `nextjs` packages
      */
     function run() external ScaffoldEthDeployerRunner {
-        // TODO: replace with actual USDC address per network
         address paymentToken = vm.envOr("PAYMENT_TOKEN", address(0));
+        // Allow address(0) only on local Anvil (chain 31337). Live networks must set PAYMENT_TOKEN.
+        if (block.chainid != 31337) {
+            require(paymentToken != address(0), "PAYMENT_TOKEN env var required for live network deployments");
+        }
         new Paypink(paymentToken);
     }
 }
