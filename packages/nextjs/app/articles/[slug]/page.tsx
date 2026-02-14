@@ -115,9 +115,9 @@ const ArticlePage: NextPage = () => {
   // Auto-fetch when we know the user can access the content
   useEffect(() => {
     if (!onChainArticle) return;
-    if (canAccessContent && fetchStatus === "idle") {
+    if (canAccessContent && (fetchStatus === "idle" || fetchStatus === "paywall")) {
       fetchContent();
-    } else if (!isFree && !hasPaid && fetchStatus === "idle") {
+    } else if (!isFree && hasPaid === false && fetchStatus === "idle") {
       setFetchStatus("paywall");
     }
   }, [onChainArticle, canAccessContent, isFree, hasPaid, fetchStatus, fetchContent]);
@@ -227,7 +227,7 @@ const ArticlePage: NextPage = () => {
   // --- Paywall / Preview ---
   if (fetchStatus === "paywall" || (fetchStatus === "idle" && !canAccessContent)) {
     return (
-      <div className="flex flex-col grow px-4 py-8 max-w-3xl mx-auto w-full">
+      <div className="container mx-auto py-8 px-4 max-w-3xl grow">
         {/* Article metadata */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-4">{slug}</h1>
@@ -312,7 +312,7 @@ const ArticlePage: NextPage = () => {
 
   // --- Full article ---
   return (
-    <div className="flex flex-col grow px-4 py-8 max-w-3xl mx-auto w-full">
+    <div className="container mx-auto py-8 px-4 max-w-3xl grow">
       {/* Content integrity warning */}
       {integrityOk === false && (
         <div className="alert alert-warning mb-6">

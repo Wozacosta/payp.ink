@@ -134,6 +134,15 @@ export async function GET(req: NextRequest) {
         `[x402] slug="${slug}" price=${onChainArticle.price} (${onChainArticle.price.toString()} wei) creator=${onChainArticle.creator}`,
       );
 
+      // Verify the article is actually registered on-chain (creator != address(0))
+      const isRegistered =
+        onChainArticle.creator && onChainArticle.creator !== "0x0000000000000000000000000000000000000000";
+
+      if (!isRegistered) {
+        console.log(`[x402] Article "${slug}" not registered on-chain`);
+        return NextResponse.json({ error: "Article not found on-chain" }, { status: 404 });
+      }
+
       if (onChainArticle.price === 0n) {
         console.log(`[x402] Bypassing x402 for free article "${slug}"`);
         const [article] = await db.select().from(articles).where(eq(articles.slug, slug)).limit(1);
