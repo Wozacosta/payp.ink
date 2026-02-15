@@ -46,10 +46,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     });
   }
 
-  // Paid article — check hasPaid on-chain
+  // Paid article — check auth + payment
   const readerAddress = await getAuthAddress(req);
   if (!readerAddress) {
     return NextResponse.json({ error: "Authentication required for paid articles" }, { status: 401 });
+  }
+
+  // Creator can always read their own article
+  if (readerAddress.toLowerCase() === onChainArticle.creator.toLowerCase()) {
+    return NextResponse.json({
+      slug: article.slug,
+      title: article.title,
+      body: article.body,
+      creatorAddress: article.creatorAddress,
+    });
   }
 
   const slugHash = getSlugHash(slug);
@@ -58,7 +68,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     functionName: "hasPaid",
     args: [slugHash, readerAddress],
   });
-
   if (!paid) {
     return NextResponse.json({ error: "Payment required", price: price.toString() }, { status: 402 });
   }
