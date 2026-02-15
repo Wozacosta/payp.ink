@@ -106,7 +106,13 @@ const CreateArticle: NextPage = () => {
     setFlowStatus("registering");
     setError("");
 
-    const priceUsd = parseUnits(price || "0", 18);
+    const trimmed = (price || "0").trim();
+    if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+      setError("Price must be a valid non-negative number.");
+      setFlowStatus("idle");
+      return;
+    }
+    const priceUsd = parseUnits(trimmed, 18);
 
     await writeTx(async () => {
       const hash = await writeContractAsync({
