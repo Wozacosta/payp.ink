@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     YourContract: {
-      address: "0xe1aa25618fa0c7a1cfdab5d6b456af611873b629",
+      address: "0xed1db453c3156ff3155a97ad217b3087d5dc5f6e",
       abi: [
         {
           type: "constructor",
@@ -148,10 +148,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 249,
+      deployedOnBlock: 251,
     },
     Paypink: {
-      address: "0x0c8e79f3534b00d9a3d4a856b665bf4ebc22f2ba",
+      address: "0x12975173b87f7595ee45dffb2ab812ece596bf84",
       abi: [
         {
           type: "constructor",
@@ -722,6 +722,25 @@ const deployedContracts = {
         },
         {
           type: "event",
+          name: "MaxStalenessUpdated",
+          inputs: [
+            {
+              name: "oldStaleness",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+            {
+              name: "newStaleness",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
           name: "PaymentTokenUpdated",
           inputs: [
             {
@@ -732,6 +751,25 @@ const deployedContracts = {
             },
             {
               name: "newToken",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "PriceFeedUpdated",
+          inputs: [
+            {
+              name: "oldFeed",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "newFeed",
               type: "address",
               indexed: true,
               internalType: "address",
@@ -802,17 +840,22 @@ const deployedContracts = {
         },
         {
           type: "error",
+          name: "Paypink__InvalidPriceFeedDecimals",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "Paypink__InvalidStaleness",
+          inputs: [],
+        },
+        {
+          type: "error",
           name: "Paypink__NothingToWithdraw",
           inputs: [],
         },
         {
           type: "error",
           name: "Paypink__OwnerOnly",
-          inputs: [],
-        },
-        {
-          type: "error",
-          name: "Paypink__RefundFailed",
           inputs: [],
         },
         {
@@ -848,10 +891,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 250,
+      deployedOnBlock: 252,
     },
     MockV3Aggregator: {
-      address: "0xe1da8919f262ee86f9be05059c9280142cf23f48",
+      address: "0xf7cd8fa9b94db2aa972023b379c7f72c65e4de9d",
       abi: [
         {
           type: "constructor",
@@ -1013,7 +1056,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 250,
+      deployedOnBlock: 252,
     },
   },
   763373: {
@@ -1733,6 +1776,25 @@ const deployedContracts = {
         },
         {
           type: "event",
+          name: "MaxStalenessUpdated",
+          inputs: [
+            {
+              name: "oldStaleness",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+            {
+              name: "newStaleness",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
           name: "PaymentTokenUpdated",
           inputs: [
             {
@@ -1743,6 +1805,25 @@ const deployedContracts = {
             },
             {
               name: "newToken",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "PriceFeedUpdated",
+          inputs: [
+            {
+              name: "oldFeed",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "newFeed",
               type: "address",
               indexed: true,
               internalType: "address",
@@ -1813,17 +1894,22 @@ const deployedContracts = {
         },
         {
           type: "error",
+          name: "Paypink__InvalidPriceFeedDecimals",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "Paypink__InvalidStaleness",
+          inputs: [],
+        },
+        {
+          type: "error",
           name: "Paypink__NothingToWithdraw",
           inputs: [],
         },
         {
           type: "error",
           name: "Paypink__OwnerOnly",
-          inputs: [],
-        },
-        {
-          type: "error",
-          name: "Paypink__RefundFailed",
           inputs: [],
         },
         {
