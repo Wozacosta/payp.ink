@@ -156,6 +156,8 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/paypink_test
       NEXTAUTH_SECRET: e2e-test-secret-at-least-32-characters
       NEXTAUTH_URL: http://localhost:3000
+      # Anvil's well-known account #0 — NOT a real secret. Same for all Foundry users.
+      # See: https://book.getfoundry.sh/reference/anvil/#default-accounts
       SERVER_WALLET_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
     steps:
