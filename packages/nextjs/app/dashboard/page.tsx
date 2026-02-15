@@ -27,7 +27,7 @@ const DashboardPage: NextPage = () => {
 
           <section>
             <h2 className="text-lg font-semibold mb-4">Your Articles</h2>
-            <CreatorArticleList address={address as `0x${string}`} />
+            <CreatorArticleList />
           </section>
         </div>
       )}

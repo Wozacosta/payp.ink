@@ -12,10 +12,6 @@ type OffChainArticle = {
   createdAt: string;
 };
 
-type CreatorArticleListProps = {
-  address: `0x${string}`;
-};
-
 const ArticleRow = ({ article }: { article: OffChainArticle }) => {
   const { data: onChain } = useScaffoldReadContract({
     contractName: "Paypink",
@@ -23,9 +19,9 @@ const ArticleRow = ({ article }: { article: OffChainArticle }) => {
     args: [article.slug],
   });
 
-  const price = onChain?.price != null ? formatEther(onChain.price) : "—";
-  const views = onChain?.views != null ? onChain.views.toString() : "—";
-  const earned = onChain?.earned != null ? formatEther(onChain.earned) : "—";
+  const price = onChain?.price != null ? formatEther(onChain.price) : null;
+  const views = onChain?.views != null ? onChain.views.toString() : null;
+  const earned = onChain?.earned != null ? formatEther(onChain.earned) : null;
 
   return (
     <tr>
@@ -39,15 +35,15 @@ const ArticleRow = ({ article }: { article: OffChainArticle }) => {
           {article.status}
         </span>
       </td>
-      <td className="text-right">{price === "0" ? "Free" : `${price} ETH`}</td>
-      <td className="text-right">{views}</td>
-      <td className="text-right">{earned === "0" ? "0" : `${earned} ETH`}</td>
+      <td className="text-right">{price == null ? "—" : price === "0" ? "Free" : `${price} ETH`}</td>
+      <td className="text-right">{views ?? "—"}</td>
+      <td className="text-right">{earned == null ? "—" : earned === "0" ? "0" : `${earned} ETH`}</td>
       <td className="text-right text-sm text-base-content/70">{new Date(article.createdAt).toLocaleDateString()}</td>
     </tr>
   );
 };
 
-export const CreatorArticleList = ({ address }: CreatorArticleListProps) => {
+export const CreatorArticleList = () => {
   const [articles, setArticles] = useState<OffChainArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -72,7 +68,7 @@ export const CreatorArticleList = ({ address }: CreatorArticleListProps) => {
     };
 
     fetchArticles();
-  }, [address]);
+  }, []);
 
   if (isLoading) {
     return (

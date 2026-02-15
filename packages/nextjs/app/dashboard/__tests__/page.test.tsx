@@ -22,9 +22,7 @@ vi.mock("~~/components/CreatorEarnings", () => ({
 }));
 
 vi.mock("~~/components/CreatorArticleList", () => ({
-  CreatorArticleList: ({ address }: { address: string }) => (
-    <div data-testid="creator-article-list">Articles for {address}</div>
-  ),
+  CreatorArticleList: () => <div data-testid="creator-article-list">Articles</div>,
 }));
 
 // --- Helpers ---
@@ -89,10 +87,10 @@ describe("DashboardPage", () => {
     expect(screen.getByText(`Earnings for ${CREATOR}`)).toBeInTheDocument();
   });
 
-  it("passes address to CreatorArticleList", () => {
+  it("renders CreatorArticleList when authenticated", () => {
     setupConnectedAndSignedIn();
     render(<DashboardPage />);
-    expect(screen.getByText(`Articles for ${CREATOR}`)).toBeInTheDocument();
+    expect(screen.getByText("Articles")).toBeInTheDocument();
   });
 
   it("shows the page title", () => {
