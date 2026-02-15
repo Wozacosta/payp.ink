@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
@@ -120,4 +122,55 @@
 
 .link:hover {
   opacity: 80%;
+}
+
+/* Make @tailwindcss/typography follow DaisyUI theme colors */
+.prose {
+  --tw-prose-body: var(--color-base-content);
+  --tw-prose-headings: var(--color-base-content);
+  --tw-prose-lead: color-mix(in oklab, var(--color-base-content) 85%, transparent);
+  --tw-prose-links: var(--color-secondary-content);
+  --tw-prose-bold: var(--color-base-content);
+  --tw-prose-counters: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+  --tw-prose-bullets: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+  --tw-prose-hr: color-mix(in oklab, var(--color-base-content) 25%, transparent);
+  --tw-prose-quotes: var(--color-base-content);
+  --tw-prose-quote-borders: color-mix(in oklab, var(--color-base-content) 40%, transparent);
+  --tw-prose-captions: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+  --tw-prose-kbd: var(--color-base-content);
+  --tw-prose-kbd-shadows: none;
+  --tw-prose-code: var(--color-base-content);
+  --tw-prose-pre-code: var(--color-base-content);
+  --tw-prose-pre-bg: var(--color-base-100);
+  --tw-prose-th-borders: color-mix(in oklab, var(--color-base-content) 30%, transparent);
+  --tw-prose-td-borders: color-mix(in oklab, var(--color-base-content) 20%, transparent);
+}
+
+.prose a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose :where(code):not(:where(pre *)) {
+  background: var(--color-base-100);
+  padding: 0.15em 0.35em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.prose :where(pre) {
+  border: 1px solid color-mix(in oklab, var(--color-base-content) 15%, transparent);
+}
+
+.prose :where(table) {
+  border-collapse: collapse;
+}
+
+.prose :where(th) {
+  background: var(--color-base-100);
+}
+
+.prose :where(th, td) {
+  border: 1px solid color-mix(in oklab, var(--color-base-content) 20%, transparent);
+  padding: 0.5rem 0.75rem;
 }
