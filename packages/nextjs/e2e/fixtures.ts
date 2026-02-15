@@ -143,8 +143,10 @@ async function programmaticSiwe(page: Page) {
  *
  * 1. Navigate to target page
  * 2. Programmatic wagmi connect via `window.__E2E_CONNECT__()`
- * 3. Programmatic SIWE via NextAuth credentials endpoint
- * 4. Synthetic storage event triggers SessionProvider refetch
+ * 3. Verify connect succeeded (wagmi state + "Sign In" button visible)
+ * 4. Programmatic SIWE via NextAuth credentials endpoint
+ * 5. Verify address is visible (only renders after SIWE — RainbowKit's
+ *    authenticationStatus gates the address display)
  *
  * No page reload needed. No RainbowKit modal interactions.
  * This is 100% deterministic.
@@ -154,13 +156,17 @@ export async function connectAndSignTo(page: Page, targetUrl: string) {
 
   // Connect wallet with retry — occasionally RainbowKit's ConnectButton.Custom
   // doesn't pick up the wagmi state change on the first attempt.
+  // After connect, RainbowKitSiweNextAuthProvider shows "Sign In" (not the
+  // address) because authenticationStatus is still "unauthenticated".
   for (let attempt = 1; attempt <= 3; attempt++) {
     await programmaticConnect(page);
     try {
-      await expect(page.getByText(TEST_ACCOUNT_SHORT).first()).toBeVisible({ timeout: 5_000 });
+      // After connect but before SIWE, the button shows "Sign In".
+      // Use .first() because RainbowKit + page content may render multiple "Sign In" buttons.
+      await expect(page.getByRole("button", { name: "Sign In" }).first()).toBeVisible({ timeout: 5_000 });
       break;
     } catch {
-      if (attempt === 3) throw new Error("Wallet address not visible after 3 connect attempts");
+      if (attempt === 3) throw new Error("Wallet not connected after 3 attempts");
       // Reload and retry
       await page.reload({ waitUntil: "networkidle" });
     }
@@ -168,6 +174,9 @@ export async function connectAndSignTo(page: Page, targetUrl: string) {
 
   // SIWE sign-in + trigger SessionProvider refetch
   await programmaticSiwe(page);
+
+  // Address only renders after authenticationStatus === "authenticated"
+  await expect(page.getByText(TEST_ACCOUNT_SHORT).first()).toBeVisible({ timeout: 10_000 });
 }
 
 /**
