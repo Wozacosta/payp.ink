@@ -11,19 +11,19 @@ export const TEST_ACCOUNT = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 export const TEST_ACCOUNT_SHORT = "0xf39F...2266";
 
 /**
- * Block ALL external network requests from the browser. In E2E tests the
+ * Block external network requests from the browser. In E2E tests the
  * only backend the browser needs is localhost (Anvil + Next.js dev server).
  * This prevents 429 rate-limit errors from third-party RPCs (merkle.io,
  * alchemy, infura, walletconnect, etc.) that stall RainbowKit initialization.
+ *
+ * Uses a regex pattern instead of a function filter so Playwright can evaluate
+ * the match in the browser process without IPC round-trips per request.
+ * This avoids a bottleneck where many concurrent requests (wagmi polling,
+ * HMR, etc.) queue up and delay legitimate localhost fetches.
  */
 async function blockExternalRequests(context: BrowserContext) {
-  await context.route(
-    url => {
-      const hostname = new URL(url.toString()).hostname;
-      return hostname !== "localhost" && hostname !== "127.0.0.1";
-    },
-    route => route.abort(),
-  );
+  // Match any URL that is NOT http(s)://localhost or http(s)://127.0.0.1
+  await context.route(/^https?:\/\/(?!localhost[:/]|127\.0\.0\.1[:/])/, route => route.abort());
 }
 
 /**
