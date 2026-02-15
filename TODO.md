@@ -124,9 +124,9 @@ Articles are immutable after publishing — no editing the body once registered 
 
 ### Creator Dashboard
 
-- [ ] List all creator's articles — merge on-chain data (views, earned, price) with off-chain data (title, status, createdAt) from DB
-- [ ] Show total earnings — ETH balance (from `getCreatorBalance`) + token balance (from `creatorTokenBalances`) displayed separately
-- [ ] Withdraw buttons — one for ETH (`withdraw()`), one for payment token (`withdrawTokens()`)
+- [x] List all creator's articles — merge on-chain data (views, earned, price) with off-chain data (title, status, createdAt) from DB
+- [x] Show total earnings — ETH balance (from `getCreatorBalance`) + token balance (from `creatorTokenBalances`) displayed separately
+- [x] Withdraw buttons — one for ETH (`withdraw()`), one for payment token (`withdrawTokens()`)
 
 ### Article discovery
 
