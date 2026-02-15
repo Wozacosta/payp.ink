@@ -29,7 +29,7 @@ export function decodePaymentHeader(req: NextRequest): { from: string; value: st
   }
 }
 
-export const handler = async (req: NextRequest): Promise<NextResponse<any>> => {
+export const handler = async (req: NextRequest): Promise<NextResponse> => {
   const slug = req.nextUrl.pathname.split("/").at(-2);
   if (!slug) {
     return NextResponse.json({ error: "Missing slug" }, { status: 400 });
@@ -61,9 +61,13 @@ export const handler = async (req: NextRequest): Promise<NextResponse<any>> => {
       functionName: "recordX402Payment",
       args: [slug, readerAddress, amount],
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     // If already paid, that's fine — serve the content anyway
-    if (!e.message?.includes("AlreadyPaid")) {
+    const isAlreadyPaid =
+      e instanceof ContractFunctionRevertedError
+        ? e.reason === "Paypink__AlreadyPaid"
+        : e instanceof Error && e.message?.includes("AlreadyPaid");
+    if (!isAlreadyPaid) {
       console.error("recordX402Payment failed:", e);
       return NextResponse.json({ error: "Failed to record payment" }, { status: 500 });
     }

@@ -17,8 +17,8 @@
     Ref: https://fravoll.github.io/solidity-patterns/pull_over_push.html
     Ref: https://docs.openzeppelin.com/contracts/4.x/api/security#PullPayment
 - [x] Write unit tests for `Paypink.sol` (`forge test`)
-- [x] Write `Tip.sol` — tipping by creator address or article slug, same 99/1 split
-- [x] Write unit tests for `Tip.sol`
+- [x] Add tipping to `Paypink.sol` — `tipBySlug()` and `tipByAddress()`, same 99/1 split
+- [x] Write unit tests for tipping functions
 - [x] Write the deploy script (`Deploy.s.sol` or Scaffold-ETH deploy script)
 - [x] Deploy to local Anvil chain and smoke-test via Scaffold-ETH debug UI
 
@@ -131,10 +131,11 @@ Articles are immutable after publishing — no editing the body once registered 
 ### Article discovery
 
 - [x] Build a simple "recent articles" listing page — query DB for published articles, show title + creator + price. Link to `/[slug]`
-- [x] (Optional) "Browse by creator" page
+- [x] "Browse by creator" page (`/articles/creator/[address]`)
 
 ## Phase 4 — Polish & Deploy
 
+- [x] Rebrand homepage, header, footer, metadata, favicon, manifest from SE-2 defaults to Paypink
 - [ ] Verify wallet connection works on Ink (Scaffold-ETH handles RainbowKit/Wagmi, just test it)
 - [x] Add loading states for all contract interactions (pending tx toasts, skeleon loaders for data fetching)
 - [x] Add error handling for contract reverts, DB failures, network issues — user-facing error messages
@@ -254,7 +255,34 @@ Trustless off-chain verification of creator identity/reputation (e.g., "this cre
 ### 6.5 — CCIP (way later)
 Cross-chain payments — reader on Base pays for content whose creator is on Ink. "Stripe Connect but for L2s."
 
-##
+## Quick Wins (from codebase review, Feb 2025)
+
+### Done
+- [x] Implement `/articles/creator/[address]` — `ArticleCard` links to it but route didn't exist
+- [x] Add DB indexes on `creator_address` and `status` columns (frequently queried, not indexed)
+- [x] Fix `x402/helpers.ts` — use proper viem `ContractFunctionRevertedError` type instead of `e.message?.includes("AlreadyPaid")`
+- [x] Remove `any` type from x402 handler return (`NextResponse<any>` → `NextResponse`)
+- [x] Fix duplicate `@custom-variant dark` line in globals.css
+- [x] Rebrand: homepage, header, footer, metadata, favicon, manifest, theme colors
+
+### Low-hanging fruit
+- [ ] Add `Cache-Control: public, max-age=300` header to `GET /api/articles/[slug]` for published articles
+- [ ] Add body size limit to `POST /api/articles` (e.g., 500KB max) — currently unbounded
+- [ ] Add async slug uniqueness check on create form (debounced, show live feedback as user types)
+- [ ] Emit `RefundFailed(reader, amount)` event when ETH overpayment refund fails silently in `payForArticle()`
+- [ ] Refetch `getArticle()` after payment in article reader (view count shows stale data)
+- [ ] Add pagination to `GET /api/dashboard` (limit + offset query params)
+- [ ] Verify `PATCH /publish` checks article exists on-chain before marking as published (currently doesn't)
+- [ ] Make ETH slippage buffer configurable (currently hardcoded at 10%)
+- [ ] Add syntax highlighting for code blocks in markdown articles (`remark-shiki` or `rehype-highlight`)
+
+### Contract improvements (Phase 5)
+- [ ] Add `updateContentHash(slug, newHash)` — creator-only, for fixing typos/updating content
+- [ ] Add `Ownable` from OpenZeppelin — currently `owner` is immutable, no transfer possible
+- [ ] Add `ReentrancyGuard` — belt-and-suspenders alongside existing CEI pattern
+- [ ] Emit event when refund excess goes to platform balance (transparency)
+
+## References
 
 https://medium.com/@psudokit/x402-from-first-principles-a-complete-protocol-architecture-security-ai-economy-and-developer-cc1c6ff1034b
 

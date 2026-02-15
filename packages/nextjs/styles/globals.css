@@ -4,8 +4,6 @@
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
-
 @theme {
   --shadow-center: 0 0 12px -2px rgb(0 0 0 / 0.05);
   --animate-pulse-fast: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -20,12 +18,12 @@
 @plugin "daisyui/theme" {
   name: "light";
 
-  --color-primary: #93bbfb;
-  --color-primary-content: #212638;
+  --color-primary: #ec4899;
+  --color-primary-content: #ffffff;
   --color-secondary: #dae8ff;
   --color-secondary-content: #212638;
-  --color-accent: #93bbfb;
-  --color-accent-content: #212638;
+  --color-accent: #a855f7;
+  --color-accent-content: #ffffff;
   --color-neutral: #212638;
   --color-neutral-content: #ffffff;
   --color-base-100: #ffffff;
@@ -45,11 +43,11 @@
 @plugin "daisyui/theme" {
   name: "dark";
 
-  --color-primary: #212638;
+  --color-primary: #db2777;
   --color-primary-content: #f9fbff;
   --color-secondary: #323f61;
   --color-secondary-content: #f9fbff;
-  --color-accent: #4969a6;
+  --color-accent: #a855f7;
   --color-accent-content: #f9fbff;
   --color-neutral: #f9fbff;
   --color-neutral-content: #385183;

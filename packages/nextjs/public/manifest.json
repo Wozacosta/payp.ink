@@ -1,5 +1,6 @@
 {
-  "name": "Scaffold-ETH 2 DApp",
-  "description": "A DApp built with Scaffold-ETH",
+  "name": "Paypink",
+  "short_name": "Paypink",
+  "description": "Decentralized content monetization — pay, tip, and earn on-chain",
   "iconPath": "logo.svg"
 }
