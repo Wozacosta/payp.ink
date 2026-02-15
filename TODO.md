@@ -237,13 +237,16 @@ Priority order for payp.ink:
 
 ### 6.1 — Price Feeds (high priority)
 USD-denominated article pricing, paid in ETH. `AggregatorV3Interface(feedAddress).latestRoundData()`. Makes pricing human-readable — nobody wants to guess what 0.00032 ETH means.
+NOTE: no chainlink price feed but we have https://docs.inkonchain.com/tools/oracles
 
 ### 6.2 — Automation (medium priority)
 On-chain cron jobs for: auto-withdrawals when creator balance hits a threshold, time-locked content that unlocks after a date, subscription expiry checks.
 
 ### 6.3 — VRF / Lucky Read (blocked)
-"Lucky Read" — 5% chance of payment refund on article purchase. Currently impossible on Ink — no VRF support yet.
+
+"Lucky Read" — 5% chance of payment refund on article purchase. Currently impossible on Ink — chainlink.
 Ref: https://www.chainlinkecosystem.com/ecosystem/ink
+BUT AVAILABLE through gelato: https://docs.inkonchain.com/tools/vrf
 
 ### 6.4 — Functions (low priority)
 Trustless off-chain verification of creator identity/reputation (e.g., "this creator has 10k followers on X" for badges).

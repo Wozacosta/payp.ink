@@ -3,6 +3,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {AggregatorV3Interface} from "./interfaces/AggregatorV3Interface.sol";
 
 // Layout:
 // pragma
@@ -50,10 +51,11 @@ contract Paypink {
     struct Article {
         string slug;
         address creator;
-        /// @dev Stored in wei. A future version may use Chainlink to accept USD-denominated prices.
+        /// @dev USD price with 18 decimals (e.g. 5e18 = $5.00). Converted to ETH at pay-time via price feed.
         uint256 price;
         string contentHash;
         uint256 views;
+        /// @dev Earned amount in wei (ETH actually received).
         uint256 earned;
     }
 
@@ -63,6 +65,10 @@ contract Paypink {
     address public immutable owner;
     address public paymentToken;
     address public authorizedX402Caller;
+    /// @notice ETH/USD price feed (AggregatorV3Interface-compatible).
+    AggregatorV3Interface public priceFeed;
+    /// @notice Maximum acceptable age (in seconds) for price feed data.
+    uint256 public maxStaleness = 3600;
     /// @notice Accumulated platform fees available for withdrawal.
     uint256 public ownerBalance;
     mapping(bytes32 slugHash => Article) articles;
@@ -76,9 +82,16 @@ contract Paypink {
     /// @notice Accumulated platform ERC-20 fees available for withdrawal.
     uint256 public platformTokenBalance;
 
-    constructor(address _paymentToken) {
+    constructor(address _paymentToken, address _priceFeed) {
+        if (_priceFeed == address(0)) {
+            revert Paypink__InvalidAddress();
+        }
         owner = msg.sender;
         paymentToken = _paymentToken;
+        priceFeed = AggregatorV3Interface(_priceFeed);
+        if (priceFeed.decimals() != 8) {
+            revert Paypink__InvalidPriceFeedDecimals();
+        }
     }
 
     /* ----- EVENTS ----- */
@@ -97,11 +110,13 @@ contract Paypink {
     event X402PaymentRecorded(bytes32 indexed key, address indexed reader, uint256 amount);
     /// @notice Emitted when the payment token is updated.
     event PaymentTokenUpdated(address indexed oldToken, address indexed newToken);
+    /// @notice Emitted when the price feed address is updated.
+    event PriceFeedUpdated(address indexed oldFeed, address indexed newFeed);
+    /// @notice Emitted when the max staleness is updated.
+    event MaxStalenessUpdated(uint256 oldStaleness, uint256 newStaleness);
 
     /* ----- ERRORS ----- */
 
-    /// @notice Thrown when `msg.value` does not match the article price.
-    error Paypink__WrongPrice(uint256 expected, uint256 actual);
     /// @notice Thrown when a non-owner calls an owner-only function.
     error Paypink__OwnerOnly();
     /// @notice Thrown when registering an article with a slug that already exists.
@@ -118,6 +133,16 @@ contract Paypink {
     error Paypink__InvalidAddress();
     /// @notice Thrown when a non-authorized caller calls a restricted function.
     error Paypink__UnauthorizedCaller();
+    /// @notice Thrown when the price feed returns stale data.
+    error Paypink__StalePrice();
+    /// @notice Thrown when the price feed returns a non-positive answer.
+    error Paypink__InvalidPrice();
+    /// @notice Thrown when `msg.value` is less than the required ETH amount.
+    error Paypink__InsufficientPayment(uint256 required, uint256 sent);
+    /// @notice Thrown when the price feed does not use 8 decimals.
+    error Paypink__InvalidPriceFeedDecimals();
+    /// @notice Thrown when maxStaleness is set outside allowed bounds.
+    error Paypink__InvalidStaleness();
     /* ----- MODIFIERS ----- */
 
     modifier onlyOwner() {
@@ -138,7 +163,7 @@ contract Paypink {
 
     /// @notice Register a new article on the platform. Free articles (price = 0) are allowed.
     /// @param slug Unique URL-friendly identifier for the article.
-    /// @param price Price in wei a reader must pay to unlock the article.
+    /// @param price USD price with 18 decimals (e.g. 5e18 = $5.00). Converted to ETH at payment time.
     /// @param contentHash IPFS or other content-addressable hash pointing to the article body.
     function registerArticle(string calldata slug, uint256 price, string calldata contentHash) external {
         bytes32 key = keccak256(abi.encodePacked(slug));
@@ -154,10 +179,9 @@ contract Paypink {
         emit ArticleRegistered(key, article.creator, article.slug, article.price);
     }
 
-    /// @notice Pay the exact article price to unlock it. Revenue is split 99/1 (creator/platform).
-    /// @dev Uses pull-over-push: balances are credited, not transferred. Recipients call
-    ///      `withdraw()` or `withdrawPlatformFees()` to collect. The creator receives
-    ///      `amount - amount/100`, so rounding favours the creator for non-multiple-of-100 values.
+    /// @notice Pay for an article using ETH. The USD price is converted to ETH via the price feed.
+    /// @dev Accepts overpayment and refunds the excess. Revenue is split 99/1 (creator/platform)
+    ///      using pull-over-push. Free articles (price = 0) do not require payment.
     /// @param slug Unique identifier of the article to unlock.
     function payForArticle(string calldata slug) external payable {
         bytes32 key = keccak256(abi.encodePacked(slug));
@@ -169,15 +193,28 @@ contract Paypink {
             revert Paypink__AlreadyPaid();
         }
 
-        if (msg.value != article.price) {
-            revert Paypink__WrongPrice(article.price, msg.value);
+        uint256 requiredEth = _getEthAmountForUsd(article.price);
+
+        if (msg.value < requiredEth) {
+            revert Paypink__InsufficientPayment(requiredEth, msg.value);
         }
+
         hasPaid[key][msg.sender] = true;
         article.views += 1;
-        article.earned += msg.value;
+        article.earned += requiredEth;
 
-        _splitPayment(msg.value, article.creator);
-        emit ArticlePaid(key, msg.sender, msg.value);
+        _splitPayment(requiredEth, article.creator);
+        emit ArticlePaid(key, msg.sender, requiredEth);
+
+        // Refund excess ETH (non-reverting: if sender can't receive, excess stays in contract)
+        uint256 refund = msg.value - requiredEth;
+        if (refund > 0) {
+            (bool sent,) = msg.sender.call{value: refund}("");
+            if (!sent) {
+                // Excess goes to platform balance rather than reverting the payment
+                ownerBalance += refund;
+            }
+        }
     }
 
     /// @notice Tip a creator via an article slug. The tip is split 99/1 (creator/platform).
@@ -222,10 +259,7 @@ contract Paypink {
         article.views += 1;
         article.earned += amount;
 
-        uint256 platformShare = amount / 100;
-        uint256 creatorShare = amount - platformShare;
-        creatorTokenBalances[article.creator] += creatorShare;
-        platformTokenBalance += platformShare;
+        _splitTokenPayment(amount, article.creator);
 
         emit X402PaymentRecorded(key, reader, amount);
     }
@@ -238,6 +272,33 @@ contract Paypink {
         uint256 creatorShare = amount - platformShare;
         creatorBalances[creator] += creatorShare;
         ownerBalance += platformShare;
+    }
+
+    /// @dev Split `amount` 99/1 between `creator` and the platform for ERC-20 token payments.
+    function _splitTokenPayment(uint256 amount, address creator) internal {
+        uint256 platformShare = amount / 100;
+        uint256 creatorShare = amount - platformShare;
+        creatorTokenBalances[creator] += creatorShare;
+        platformTokenBalance += platformShare;
+    }
+
+    /// @dev Convert a USD amount (18 decimals) to ETH (18 decimals) using the price feed.
+    ///      Free articles (priceUsd = 0) return 0 without reading the feed.
+    function _getEthAmountForUsd(uint256 priceUsd) internal view returns (uint256) {
+        if (priceUsd == 0) return 0;
+
+        (, int256 answer,, uint256 updatedAt,) = priceFeed.latestRoundData();
+        if (answer <= 0) {
+            revert Paypink__InvalidPrice();
+        }
+        if (block.timestamp - updatedAt > maxStaleness) {
+            revert Paypink__StalePrice();
+        }
+
+        // price feed returns ETH/USD with 8 decimals (e.g. 2000_00000000 = $2000)
+        // priceUsd has 18 decimals, answer has 8 decimals
+        // result = priceUsd * 1e8 / answer → 18 decimals (wei)
+        return (priceUsd * 1e8) / uint256(answer);
     }
 
     /* ----- SETTERS ----- */
@@ -262,6 +323,31 @@ contract Paypink {
         address oldCaller = authorizedX402Caller;
         authorizedX402Caller = _caller;
         emit AuthorizedX402CallerSet(oldCaller, _caller);
+    }
+
+    /// @notice Update the price feed address. Only callable by the contract owner.
+    /// @param _feed The new AggregatorV3Interface-compatible price feed address (must use 8 decimals).
+    function setPriceFeed(address _feed) external onlyOwner {
+        if (_feed == address(0)) {
+            revert Paypink__InvalidAddress();
+        }
+        if (AggregatorV3Interface(_feed).decimals() != 8) {
+            revert Paypink__InvalidPriceFeedDecimals();
+        }
+        address oldFeed = address(priceFeed);
+        priceFeed = AggregatorV3Interface(_feed);
+        emit PriceFeedUpdated(oldFeed, _feed);
+    }
+
+    /// @notice Update the maximum staleness for price feed data. Only callable by the contract owner.
+    /// @param _maxStaleness New max staleness in seconds (min 60, max 86400).
+    function setMaxStaleness(uint256 _maxStaleness) external onlyOwner {
+        if (_maxStaleness < 60 || _maxStaleness > 86400) {
+            revert Paypink__InvalidStaleness();
+        }
+        uint256 oldStaleness = maxStaleness;
+        maxStaleness = _maxStaleness;
+        emit MaxStalenessUpdated(oldStaleness, _maxStaleness);
     }
 
     /* ----- WITHDRAWALS ----- */
@@ -340,5 +426,13 @@ contract Paypink {
     /// @param creator Address of the creator.
     function getCreatorBalance(address creator) external view returns (uint256) {
         return creatorBalances[creator];
+    }
+
+    /// @notice Return the ETH amount required to pay for an article at current prices.
+    /// @param slug Unique identifier of the article.
+    /// @return ethAmount The amount in wei the reader must send (before any slippage buffer).
+    function getArticlePriceInEth(string calldata slug) external view returns (uint256) {
+        bytes32 key = keccak256(abi.encodePacked(slug));
+        return _getEthAmountForUsd(articles[key].price);
     }
 }

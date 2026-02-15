@@ -60,11 +60,25 @@ const ArticlePage: NextPage = () => {
     },
   });
 
+  // Read current ETH price for the article from the price feed
+  const { data: ethPriceForArticle } = useScaffoldReadContract({
+    contractName: "Paypink",
+    functionName: "getArticlePriceInEth",
+    args: [slug],
+    query: {
+      enabled: !!slug && !!onChainArticle && onChainArticle.price > 0n,
+    },
+  });
+
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "Paypink" });
   const writeTx = useTransactor();
 
   const isPaying = payingEth || payingUsdc;
   const isFree = onChainArticle ? onChainArticle.price === 0n : false;
+  const priceUsd = onChainArticle ? formatUnits(onChainArticle.price, 18) : "0";
+  // Add 10% slippage buffer for ETH payment (excess is refunded by the contract)
+  const ethPaymentAmount = ethPriceForArticle ? (ethPriceForArticle * 110n) / 100n : 0n;
+  const ethDisplayAmount = ethPriceForArticle ? formatEther(ethPriceForArticle) : "...";
   const isCreator = !!address && onChainArticle?.creator?.toLowerCase() === address.toLowerCase();
   const canAccessContent = isFree || hasPaid || isCreator;
 
@@ -128,7 +142,7 @@ const ArticlePage: NextPage = () => {
 
   // Pay with ETH
   const handlePayEth = async () => {
-    if (!onChainArticle) return;
+    if (!onChainArticle || !ethPaymentAmount) return;
 
     setPayingEth(true);
     try {
@@ -136,7 +150,7 @@ const ArticlePage: NextPage = () => {
         const hash = await writeContractAsync({
           functionName: "payForArticle",
           args: [slug],
-          value: onChainArticle.price,
+          value: ethPaymentAmount,
         });
         if (!hash) throw new Error("Transaction rejected");
         return hash;
@@ -242,19 +256,14 @@ const ArticlePage: NextPage = () => {
             </span>
             <span>{Number(onChainArticle.views)} views</span>
           </div>
-          <div className="badge badge-lg badge-primary">
-            {isFree ? "Free" : `${formatEther(onChainArticle.price)} ETH`}
-          </div>
+          <div className="badge badge-lg badge-primary">{isFree ? "Free" : `$${priceUsd}`}</div>
         </div>
 
         {/* Paywall card */}
         <div className="card bg-base-200 shadow-xl">
           <div className="card-body items-center text-center">
             <h2 className="card-title text-xl">This article requires payment</h2>
-            <p className="text-base-content/70 mb-4">
-              Pay {formatEther(onChainArticle.price)} ETH or ${formatUnits(onChainArticle.price, 18)} USDC to read the
-              full article.
-            </p>
+            <p className="text-base-content/70 mb-4">Pay ${priceUsd} to read the full article.</p>
 
             {fetchError && <p className="text-error text-sm mb-2">{fetchError}</p>}
 
@@ -267,14 +276,14 @@ const ArticlePage: NextPage = () => {
               </div>
             ) : (
               <div className="flex gap-4">
-                <button className="btn btn-primary" onClick={handlePayEth} disabled={isPaying}>
+                <button className="btn btn-primary" onClick={handlePayEth} disabled={isPaying || !ethPaymentAmount}>
                   {payingEth ? (
                     <>
                       <span className="loading loading-spinner loading-sm"></span>
                       Paying...
                     </>
                   ) : (
-                    `Pay ${formatEther(onChainArticle.price)} ETH`
+                    `Pay ~${ethDisplayAmount} ETH`
                   )}
                 </button>
                 <button className="btn btn-secondary" onClick={handlePayUsdc} disabled={isPaying}>
@@ -284,7 +293,7 @@ const ArticlePage: NextPage = () => {
                       Paying...
                     </>
                   ) : (
-                    `Pay $${formatUnits(onChainArticle.price, 18)} USDC`
+                    `Pay $${priceUsd} USDC`
                   )}
                 </button>
               </div>
@@ -336,7 +345,7 @@ const ArticlePage: NextPage = () => {
             By <Address address={onChainArticle.creator} />
           </span>
           <span>{Number(onChainArticle.views)} views</span>
-          <span>{isFree ? "Free" : `${formatEther(onChainArticle.price)} ETH`}</span>
+          <span>{isFree ? "Free" : `$${priceUsd}`}</span>
           {integrityOk === true && <span className="badge badge-success badge-sm">Verified</span>}
         </div>
       </div>
