@@ -13,6 +13,7 @@ import remarkGfm from "remark-gfm";
 import { formatEther, formatUnits } from "viem";
 import { baseSepolia } from "viem/chains";
 import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
+import { TipButton } from "~~/components/TipButton";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { getSlugHash } from "~~/services/web3/slugHash";
 import { verifyContentIntegrity } from "~~/utils/contentHash";
@@ -337,6 +338,10 @@ const ArticlePage: NextPage = () => {
       <article className="prose max-w-none">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{articleContent?.body || ""}</ReactMarkdown>
       </article>
+
+      {/* Tip */}
+      <div className="divider"></div>
+      <TipButton slug={slug} />
     </div>
   );
 };

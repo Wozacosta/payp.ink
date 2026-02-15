@@ -118,9 +118,9 @@ Articles are immutable after publishing — no editing the body once registered 
 
 ### Tip component
 
-- [ ] Tip button on article page — opens a small form with `EtherInput` (Scaffold-ETH component, supports ETH/USD toggle)
-- [ ] Calls `tipBySlug()` on contract
-- [ ] Show confirmation feedback (toast or inline)
+- [x] Tip button on article page — opens a small form with `EtherInput` (Scaffold-ETH component, supports ETH/USD toggle)
+- [x] Calls `tipBySlug()` on contract
+- [x] Show confirmation feedback (toast or inline)
 
 ### Creator Dashboard
 
