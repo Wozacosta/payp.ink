@@ -168,7 +168,7 @@ describe("CreatorArticleList", () => {
     render(<CreatorArticleList />);
 
     await waitFor(() => {
-      expect(screen.getByText("0.001 ETH")).toBeInTheDocument();
+      expect(screen.getByText("$0.001")).toBeInTheDocument();
       expect(screen.getByText("42")).toBeInTheDocument();
       expect(screen.getByText("0.005 ETH")).toBeInTheDocument();
     });

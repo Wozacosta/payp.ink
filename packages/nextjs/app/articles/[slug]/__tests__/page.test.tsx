@@ -108,6 +108,10 @@ function setupMocks(
     if (args.functionName === "hasPaid") {
       return { data: hasPaid, refetch: vi.fn() };
     }
+    if (args.functionName === "getArticlePriceInEth") {
+      // Return a realistic ETH amount so pay buttons are enabled
+      return { data: article?.price ? 5000000000000000n : 0n, isLoading: false };
+    }
     return { data: undefined, isLoading: false };
   });
 }
