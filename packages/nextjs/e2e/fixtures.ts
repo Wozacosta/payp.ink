@@ -6,9 +6,13 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const mockProviderScript = readFileSync(join(__dirname, "mock-provider.js"), "utf-8");
 
-// Anvil account #0
+// Anvil account #0 (creator / default)
 export const TEST_ACCOUNT = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 export const TEST_ACCOUNT_SHORT = "0xf39F...2266";
+
+// Anvil account #1 (reader for multi-user tests)
+export const READER_ACCOUNT = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+export const READER_ACCOUNT_SHORT = "0x7099...79C8";
 
 /**
  * Block external network requests from the browser. In E2E tests the
@@ -64,7 +68,7 @@ async function programmaticConnect(page: Page) {
  * The storage event only fires cross-tab by default, so we dispatch a
  * synthetic StorageEvent to trigger the same-tab listener.
  */
-async function programmaticSiwe(page: Page) {
+async function programmaticSiwe(page: Page, account: string = TEST_ACCOUNT) {
   const siweOk = await page.evaluate(async (account: string) => {
     // 1. Get CSRF token (used as SIWE nonce)
     const csrfRes = await fetch("/api/auth/csrf");
@@ -131,7 +135,7 @@ async function programmaticSiwe(page: Page) {
     );
 
     return true;
-  }, TEST_ACCOUNT);
+  }, account);
 
   if (!siweOk) {
     throw new Error("SIWE callback failed");
@@ -151,7 +155,14 @@ async function programmaticSiwe(page: Page) {
  * No page reload needed. No RainbowKit modal interactions.
  * This is 100% deterministic.
  */
-export async function connectAndSignTo(page: Page, targetUrl: string) {
+export async function connectAndSignTo(
+  page: Page,
+  targetUrl: string,
+  opts: { account?: string; shortAddress?: string } = {},
+) {
+  const account = opts.account ?? TEST_ACCOUNT;
+  const shortAddress = opts.shortAddress ?? TEST_ACCOUNT_SHORT;
+
   await page.goto(targetUrl, { waitUntil: "networkidle" });
 
   // Connect wallet with retry — occasionally RainbowKit's ConnectButton.Custom
@@ -173,10 +184,10 @@ export async function connectAndSignTo(page: Page, targetUrl: string) {
   }
 
   // SIWE sign-in + trigger SessionProvider refetch
-  await programmaticSiwe(page);
+  await programmaticSiwe(page, account);
 
   // Address only renders after authenticationStatus === "authenticated"
-  await expect(page.getByText(TEST_ACCOUNT_SHORT).first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(shortAddress).first()).toBeVisible({ timeout: 10_000 });
 }
 
 /**
@@ -203,5 +214,19 @@ export const test = base.extend({
     await use(context);
   },
 });
+
+/**
+ * Create a separate browser context using Anvil account #1 (the "reader").
+ * Injects __E2E_ACCOUNT__ before mock-provider.js runs so the provider
+ * picks up the reader address instead of the default account #0.
+ */
+export async function createReaderContext(browser: import("@playwright/test").Browser) {
+  const context = await browser.newContext();
+  await context.addInitScript({ content: `window.__E2E_ACCOUNT__ = "${READER_ACCOUNT}";` });
+  await context.addInitScript({ content: mockProviderScript });
+  await blockExternalRequests(context);
+  const page = await context.newPage();
+  return { context, page };
+}
 
 export { expect };
