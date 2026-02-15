@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import type { NextPage } from "next";
+import { ArticleCard } from "~~/components/ArticleCard";
 import { db } from "~~/db";
 import { articles } from "~~/db/schema";
 
@@ -25,21 +25,13 @@ const ArticlesPage: NextPage = async () => {
       ) : (
         <div className="flex flex-col gap-4">
           {published.map(article => (
-            <Link
+            <ArticleCard
               key={article.slug}
-              href={`/articles/${article.slug}`}
-              className="card card-bordered bg-base-100 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="card-body p-5">
-                <h2 className="card-title text-lg">{article.title}</h2>
-                <div className="flex flex-wrap items-center gap-3 text-sm text-base-content/70">
-                  <span className="font-mono text-xs">
-                    {article.creatorAddress.slice(0, 6)}...{article.creatorAddress.slice(-4)}
-                  </span>
-                  <span>{article.createdAt.toLocaleDateString()}</span>
-                </div>
-              </div>
-            </Link>
+              slug={article.slug}
+              title={article.title}
+              creatorAddress={article.creatorAddress}
+              createdAt={article.createdAt.toISOString()}
+            />
           ))}
         </div>
       )}
