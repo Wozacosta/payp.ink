@@ -83,13 +83,13 @@ describe("CreatorArticleList", () => {
 
   it("shows loading spinner initially", () => {
     mockFetch.mockReturnValueOnce(new Promise(() => {})); // never resolves
-    render(<CreatorArticleList address={CREATOR} />);
+    render(<CreatorArticleList />);
     expect(screen.getByTestId("articles-loading")).toBeInTheDocument();
   });
 
   it("shows empty state when creator has no articles", async () => {
     mockApiResponse([]);
-    render(<CreatorArticleList address={CREATOR} />);
+    render(<CreatorArticleList />);
 
     await waitFor(() => {
       expect(screen.getByText(/no articles yet/i)).toBeInTheDocument();
@@ -98,7 +98,7 @@ describe("CreatorArticleList", () => {
 
   it("shows error state when API fails", async () => {
     mockApiError();
-    render(<CreatorArticleList address={CREATOR} />);
+    render(<CreatorArticleList />);
 
     await waitFor(() => {
       expect(screen.getByText(/failed to load articles/i)).toBeInTheDocument();
@@ -110,7 +110,7 @@ describe("CreatorArticleList", () => {
       makeOffChainArticle({ slug: "first", title: "First Post" }),
       makeOffChainArticle({ slug: "second", title: "Second Post" }),
     ]);
-    render(<CreatorArticleList address={CREATOR} />);
+    render(<CreatorArticleList />);
 
     await waitFor(() => {
       expect(screen.getByText("First Post")).toBeInTheDocument();
@@ -123,7 +123,7 @@ describe("CreatorArticleList", () => {
       makeOffChainArticle({ slug: "pub", title: "Published", status: "published" }),
       makeOffChainArticle({ slug: "draft", title: "Draft One", status: "draft" }),
     ]);
-    render(<CreatorArticleList address={CREATOR} />);
+    render(<CreatorArticleList />);
 
     await waitFor(() => {
       expect(screen.getByText("published")).toBeInTheDocument();
@@ -133,7 +133,7 @@ describe("CreatorArticleList", () => {
 
   it("links articles to their reader page", async () => {
     mockApiResponse([makeOffChainArticle({ slug: "my-post", title: "My Post" })]);
-    render(<CreatorArticleList address={CREATOR} />);
+    render(<CreatorArticleList />);
 
     await waitFor(() => {
       const link = screen.getByRole("link", { name: /My Post/i });
@@ -143,7 +143,7 @@ describe("CreatorArticleList", () => {
 
   it("fetches from /api/dashboard", async () => {
     mockApiResponse([]);
-    render(<CreatorArticleList address={CREATOR} />);
+    render(<CreatorArticleList />);
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith("/api/dashboard");
@@ -152,7 +152,7 @@ describe("CreatorArticleList", () => {
 
   it("shows error when fetch itself throws (network failure)", async () => {
     mockFetch.mockRejectedValueOnce(new Error("network error"));
-    render(<CreatorArticleList address={CREATOR} />);
+    render(<CreatorArticleList />);
 
     await waitFor(() => {
       expect(screen.getByText(/failed to load articles/i)).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe("CreatorArticleList", () => {
       isLoading: false,
     });
     mockApiResponse([makeOffChainArticle()]);
-    render(<CreatorArticleList address={CREATOR} />);
+    render(<CreatorArticleList />);
 
     await waitFor(() => {
       expect(screen.getByText("0.001 ETH")).toBeInTheDocument();
@@ -180,7 +180,7 @@ describe("CreatorArticleList", () => {
       isLoading: false,
     });
     mockApiResponse([makeOffChainArticle()]);
-    render(<CreatorArticleList address={CREATOR} />);
+    render(<CreatorArticleList />);
 
     await waitFor(() => {
       expect(screen.getByText("Free")).toBeInTheDocument();
@@ -190,13 +190,11 @@ describe("CreatorArticleList", () => {
   it("shows em-dash fallback while on-chain data is loading", async () => {
     mockUseScaffoldReadContract.mockReturnValue({ data: undefined, isLoading: true });
     mockApiResponse([makeOffChainArticle()]);
-    render(<CreatorArticleList address={CREATOR} />);
+    render(<CreatorArticleList />);
 
     await waitFor(() => {
-      // views column shows plain "—", price/earned show "— ETH"
-      expect(screen.getByText("—")).toBeInTheDocument();
-      const ethDashes = screen.getAllByText("— ETH");
-      expect(ethDashes).toHaveLength(2); // price + earned
+      const dashes = screen.getAllByText("—");
+      expect(dashes).toHaveLength(3); // price + views + earned
     });
   });
 });
