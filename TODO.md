@@ -166,9 +166,9 @@ Stack: Vitest + @testing-library/react + jsdom. Tests run without a browser — 
 
 ### API route tests
 
-- [ ] Test `GET /api/articles/[slug]/x402` — free article bypass serves content when article is registered on-chain
-- [ ] Test `GET /api/articles/[slug]/x402` — returns 404 when article is not registered on-chain (creator is zero address)
-- [ ] Test `GET /api/articles/[slug]/x402` — paid article falls through to x402 handler
+- [x] Test `GET /api/articles/[slug]/x402` — free article bypass serves content when article is registered on-chain
+- [x] Test `GET /api/articles/[slug]/x402` — returns 404 when article is not registered on-chain (creator is zero address)
+- [x] Test `GET /api/articles/[slug]/x402` — paid article falls through to x402 handler
 
 ### Component tests
 
