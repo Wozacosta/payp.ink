@@ -10,7 +10,8 @@
  */
 (function injectMockProvider() {
   const RPC_URL = "http://localhost:8545";
-  const ACCOUNT = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"; // Anvil #0
+  // Default to Anvil #0; override via window.__E2E_ACCOUNT__ for multi-user tests
+  const ACCOUNT = window.__E2E_ACCOUNT__ || "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
   const CHAIN_ID = "0x7a69"; // 31337
 
   // Signal E2E mode to wagmiConnectors.tsx

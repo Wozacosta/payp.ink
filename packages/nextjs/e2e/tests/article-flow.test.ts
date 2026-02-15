@@ -1,4 +1,4 @@
-import { connectAndSignTo, expect, test } from "../fixtures";
+import { READER_ACCOUNT, READER_ACCOUNT_SHORT, connectAndSignTo, createReaderContext, expect, test } from "../fixtures";
 
 // Each test gets a unique slug to avoid collisions
 function slug(prefix: string) {
@@ -105,5 +105,92 @@ test.describe("Article Flow", () => {
 
     await expect(page.getByText("0.001")).toBeVisible({ timeout: CONTENT_TIMEOUT });
     await expect(page.getByText("ETH").first()).toBeVisible();
+  });
+
+  test("should pay with ETH and read content as a different reader", async ({ page, browser }) => {
+    const s = slug("eth-pay");
+
+    // 1. Creator (account #0) publishes a paid article
+    await connectAndSignTo(page, "/create");
+    await createArticle(page, {
+      title: "ETH Pay E2E Article",
+      slug: s,
+      body: "# Premium Content\n\nYou paid ETH to see this.",
+      price: "0.001",
+    });
+
+    // 2. Reader (account #1) opens the article in a separate context
+    const { context: readerCtx, page: readerPage } = await createReaderContext(browser);
+    try {
+      await connectAndSignTo(readerPage, `/articles/${s}`, {
+        account: READER_ACCOUNT,
+        shortAddress: READER_ACCOUNT_SHORT,
+      });
+
+      // 3. Reader sees paywall
+      await expect(readerPage.getByText("This article requires payment")).toBeVisible({ timeout: CONTENT_TIMEOUT });
+
+      // 4. Reader pays with ETH
+      await readerPage.getByRole("button", { name: /Pay 0\.001 ETH/ }).click();
+
+      // 5. Content auto-loads after payment
+      await expect(readerPage.getByText("Premium Content")).toBeVisible({ timeout: CONTENT_TIMEOUT });
+      await expect(readerPage.getByText("You paid ETH to see this.")).toBeVisible();
+
+      // 6. Integrity badge appears
+      await expect(readerPage.getByText("Verified", { exact: true })).toBeVisible({ timeout: 10_000 });
+    } finally {
+      await readerCtx.close();
+    }
+  });
+
+  test("should show 'Verified' badge for content integrity on free article", async ({ page }) => {
+    const s = slug("integrity");
+    await connectAndSignTo(page, "/create");
+
+    await createArticle(page, {
+      title: "Integrity E2E Article",
+      slug: s,
+      body: "# Verified Content\n\nThis body matches the on-chain hash.",
+    });
+
+    // Navigate to article — content auto-loads (free article)
+    await page.getByRole("link", { name: "View Article" }).click();
+    await page.waitForURL(`/articles/${s}`);
+
+    await expect(page.getByText("Verified Content")).toBeVisible({ timeout: CONTENT_TIMEOUT });
+
+    // The "Verified" badge appears after integrity check passes.
+    // Use exact: true to avoid matching the article heading "Verified Content".
+    await expect(page.getByText("Verified", { exact: true })).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("should tip the author via TipButton", async ({ page }) => {
+    const s = slug("tip");
+    await connectAndSignTo(page, "/create");
+
+    await createArticle(page, {
+      title: "Tip E2E Article",
+      slug: s,
+      body: "# Tippable Content\n\nPlease tip generously.",
+    });
+
+    // Navigate to article
+    await page.getByRole("link", { name: "View Article" }).click();
+    await page.waitForURL(`/articles/${s}`);
+
+    await expect(page.getByText("Tippable Content")).toBeVisible({ timeout: CONTENT_TIMEOUT });
+
+    // Open tip form
+    await page.getByRole("button", { name: "Tip the author" }).click();
+
+    // Fill tip amount and send
+    await page.getByPlaceholder("0.01").fill("0.01");
+    await page.getByRole("button", { name: "Send tip" }).click();
+
+    // On success the form closes — the collapsed "Tip the author" button re-appears
+    await expect(page.getByRole("button", { name: "Tip the author" })).toBeVisible({ timeout: CONTENT_TIMEOUT });
+    // Verify the form is gone (no "Send tip" button)
+    await expect(page.getByRole("button", { name: "Send tip" })).not.toBeVisible();
   });
 });
