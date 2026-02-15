@@ -4,7 +4,7 @@
 
 Paypink stores article prices in USD (18 decimals) and converts to ETH at payment time using an on-chain price feed. The contract uses `AggregatorV3Interface` (Chainlink-compatible), making it oracle-agnostic — any provider implementing `latestRoundData()` and `decimals()` works.
 
-## Oracles Evaluated (February 2025)
+## Oracles Evaluated (February 2026)
 
 ### Chainlink
 

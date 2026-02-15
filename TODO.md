@@ -244,7 +244,7 @@ On-chain cron jobs for: auto-withdrawals when creator balance hits a threshold, 
 
 ### 6.3 — VRF / Lucky Read (blocked)
 
-"Lucky Read" — 5% chance of payment refund on article purchase. Currently impossible on Ink — chainlink.
+"Lucky Read" — 5% chance of payment refund on article purchase. Currently unavailable on Ink — no Chainlink VRF support.
 Ref: https://www.chainlinkecosystem.com/ecosystem/ink
 BUT AVAILABLE through gelato: https://docs.inkonchain.com/tools/vrf
 
