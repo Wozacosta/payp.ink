@@ -24,7 +24,7 @@ Every payment — whether ETH or ERC-20 — is split:
 - **99%** credited to the creator's internal balance
 - **1%** credited to the platform's internal balance
 
-The split uses integer math: `creatorShare = amount * 99 / 100`, `platformShare = amount - creatorShare`. This avoids rounding issues where `99 + 1` might not equal `100`.
+The split uses integer math: `platformShare = amount / 100`, then `creatorShare = amount - platformShare`. Computing the smaller share first and subtracting ensures rounding always favors the creator.
 
 ### Pull Over Push
 

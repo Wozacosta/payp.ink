@@ -1,37 +1,24 @@
+import { notFound } from "next/navigation";
 import { Address } from "@scaffold-ui/components";
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import type { Metadata } from "next";
-import type { NextPage } from "next";
-import { getAddress, isAddress } from "viem";
+import { isAddress } from "viem";
 import { ArticleCard } from "~~/components/ArticleCard";
 import { db } from "~~/db";
 import { articles } from "~~/db/schema";
 
-type Props = {
-  params: Promise<{ address: string }>;
-};
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ address: string }> }): Promise<Metadata> {
   const { address } = await params;
-  const short = isAddress(address) ? `${address.slice(0, 6)}...${address.slice(-4)}` : address;
-  return {
-    title: `Articles by ${short} | Paypink`,
-  };
+  const short = `${address.slice(0, 6)}...${address.slice(-4)}`;
+  return { title: `Articles by ${short}` };
 }
 
-const CreatorArticlesPage: NextPage<Props> = async ({ params }) => {
+export default async function CreatorPage({ params }: { params: Promise<{ address: string }> }) {
   const { address } = await params;
 
   if (!isAddress(address)) {
-    return (
-      <div className="container mx-auto py-8 px-4 max-w-3xl grow">
-        <h1 className="text-2xl font-bold mb-6">Invalid address</h1>
-        <p className="text-base-content/70">The address in the URL is not a valid Ethereum address.</p>
-      </div>
-    );
+    notFound();
   }
-
-  const checksummed = getAddress(address);
 
   const published = await db
     .select({
@@ -42,21 +29,23 @@ const CreatorArticlesPage: NextPage<Props> = async ({ params }) => {
       createdAt: articles.createdAt,
     })
     .from(articles)
-    .where(and(eq(articles.status, "published"), eq(articles.creatorAddress, checksummed)))
+    .where(eq(articles.creatorAddress, address))
     .orderBy(desc(articles.createdAt));
+
+  const visibleArticles = published.filter(a => a.creatorAddress.toLowerCase() === address.toLowerCase());
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-3xl grow">
-      <div className="flex items-center gap-2 mb-6">
-        <h1 className="text-2xl font-bold">Articles by</h1>
-        <Address address={checksummed} size="lg" />
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-2">Articles by</h1>
+        <Address address={address as `0x${string}`} />
       </div>
 
-      {published.length === 0 ? (
+      {visibleArticles.length === 0 ? (
         <p className="text-base-content/70">No published articles by this creator.</p>
       ) : (
         <div className="flex flex-col gap-4">
-          {published.map(article => (
+          {visibleArticles.map(article => (
             <ArticleCard
               key={article.slug}
               slug={article.slug}
@@ -70,6 +59,4 @@ const CreatorArticlesPage: NextPage<Props> = async ({ params }) => {
       )}
     </div>
   );
-};
-
-export default CreatorArticlesPage;
+}
