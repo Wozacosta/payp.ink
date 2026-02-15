@@ -10,6 +10,7 @@ const DOC_ORDER = [
   "smart-contracts",
   "payment-rails",
   "x402-protocol",
+  "ink-facilitator",
   "oracle-pricing",
   "authentication",
   "chains",
