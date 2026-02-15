@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       })) as OnChainArticle;
 
       console.log(
-        `[x402] slug="${slug}" price=${onChainArticle.price} (${onChainArticle.price.toString()} wei) creator=${onChainArticle.creator}`,
+        `[x402] slug="${slug}" priceUsd=${onChainArticle.price} (${onChainArticle.price.toString()} 18-dec USD) creator=${onChainArticle.creator}`,
       );
 
       // Verify the article is actually registered on-chain (creator != address(0))

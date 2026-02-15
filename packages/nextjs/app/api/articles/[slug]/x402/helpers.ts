@@ -91,8 +91,7 @@ export async function getRouteConfig(req: NextRequest) {
       args: [slug],
     })) as OnChainArticle;
 
-    // Price is stored in wei (18 decimals). Passed as-is until Chainlink ETH/USD feed is wired up (Phase 6.1).
-    // Round to 2 decimal places (USDC cents), with a minimum of $0.01.
+    // Price is stored in USD with 18 decimals. Convert to USDC (2 decimal places).
     const rawPrice = Number(formatUnits(onChainArticle.price, 18));
     const priceUsd = Math.max(0.01, Math.round(rawPrice * 100) / 100).toFixed(2);
 

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import { Test } from "forge-std/Test.sol";
-import { Paypink } from "../contracts/Paypink.sol";
-import { console } from "forge-std/console.sol";
+import {Test} from "forge-std/Test.sol";
+import {Paypink} from "../contracts/Paypink.sol";
+import {MockV3Aggregator} from "../contracts/mocks/MockV3Aggregator.sol";
+import {console} from "forge-std/console.sol";
 
-contract PaypinkTest is Test {
+contract PaypinkIntegrationTest is Test {
     address deployer = makeAddr("deployer");
     address author = makeAddr("author");
     address reader = makeAddr("reader");
@@ -14,18 +15,23 @@ contract PaypinkTest is Test {
     address token = makeAddr("token");
 
     Paypink public paypink;
+    MockV3Aggregator public mockFeed;
+
+    int256 constant ETH_USD_PRICE = 2000_00000000;
+    uint256 constant TEN_USD = 10e18;
+    uint256 constant EXPECTED_ETH = 5e15; // $10 / $2000 = 0.005 ETH
 
     function setUp() public {
-        vm.prank(deployer);
-        paypink = new Paypink(token);
+        vm.startPrank(deployer);
+        mockFeed = new MockV3Aggregator(8, ETH_USD_PRICE);
+        paypink = new Paypink(token, address(mockFeed));
+        vm.stopPrank();
     }
 
     function test_RegisterArticle_PayForArticle_CreatorWithdraws() public {
-        uint256 PRICE = 1000;
-
         // --- Register article as author ---
         vm.startPrank(author);
-        paypink.registerArticle("article-slug", PRICE, "contentHashed");
+        paypink.registerArticle("article-slug", TEN_USD, "contentHashed");
         assertEq(paypink.ownerBalance(), 0);
         assertEq(paypink.creatorBalances(author), 0);
         vm.stopPrank();
@@ -33,100 +39,99 @@ contract PaypinkTest is Test {
         // --- Reader 1 pays for article ---
         vm.deal(reader, 1 ether);
         vm.startPrank(reader);
-        paypink.payForArticle{ value: PRICE }("article-slug");
+        paypink.payForArticle{value: EXPECTED_ETH}("article-slug");
 
         Paypink.Article memory newArticle = paypink.getArticle("article-slug");
         assertEq(newArticle.views, 1);
-        assertEq(newArticle.earned, PRICE);
+        assertEq(newArticle.earned, EXPECTED_ETH);
 
         // --- Reader 1 tries to pay again (should revert) ---
         vm.expectRevert(Paypink.Paypink__AlreadyPaid.selector);
         paypink.payForArticle("article-slug");
 
         // --- Verify 99/1 split after first payment ---
-        console.log("Owner balance:", paypink.ownerBalance());
-        console.log("Creator balance:", paypink.creatorBalances(author));
-        assertEq(paypink.ownerBalance(), 10);
-        assertEq(paypink.creatorBalances(author), 990);
+        uint256 platformShare = EXPECTED_ETH / 100;
+        uint256 creatorShare = EXPECTED_ETH - platformShare;
+        assertEq(paypink.ownerBalance(), platformShare);
+        assertEq(paypink.creatorBalances(author), creatorShare);
 
         vm.stopPrank();
 
         // --- Reader 2 pays for the same article ---
         vm.deal(reader2, 1 ether);
         vm.startPrank(reader2);
-        paypink.payForArticle{ value: PRICE }("article-slug");
+        paypink.payForArticle{value: EXPECTED_ETH}("article-slug");
 
         // --- Verify balances accumulated correctly ---
-        console.log("Owner balance:", paypink.ownerBalance());
-        console.log("Creator balance:", paypink.creatorBalances(author));
-        assertEq(paypink.ownerBalance(), 20);
-        assertEq(paypink.creatorBalances(author), 1980);
+        assertEq(paypink.ownerBalance(), platformShare * 2);
+        assertEq(paypink.creatorBalances(author), creatorShare * 2);
 
         vm.stopPrank();
 
         // --- Author withdraws his balance ---
-
         uint256 balanceAuthor = paypink.creatorBalances(author);
         vm.startPrank(author);
         paypink.withdraw();
         assertEq(author.balance, balanceAuthor);
         assertEq(paypink.creatorBalances(author), 0);
-
         vm.stopPrank();
 
         // --- Owner withdraws his balance ---
-
         vm.startPrank(deployer);
         assertEq(deployer.balance, 0);
         paypink.withdrawPlatformFees();
         assertEq(paypink.ownerBalance(), 0);
-        assertEq(deployer.balance, 20);
+        assertEq(deployer.balance, platformShare * 2);
         vm.stopPrank();
     }
 
     function test_Register_Pay_TipBySlug_TipByAddress_Withdraw() public {
-        uint256 PRICE = 1000;
         uint256 TIP_SLUG = 500;
         uint256 TIP_DIRECT = 200;
 
         // --- Register article ---
         vm.prank(author);
-        paypink.registerArticle("tipped-article", PRICE, "hashTipped");
+        paypink.registerArticle("tipped-article", TEN_USD, "hashTipped");
 
         // --- Reader pays for the article ---
         vm.deal(reader, 1 ether);
         vm.prank(reader);
-        paypink.payForArticle{ value: PRICE }("tipped-article");
+        paypink.payForArticle{value: EXPECTED_ETH}("tipped-article");
 
-        // after payment: creator 990, platform 10
-        assertEq(paypink.creatorBalances(author), 990);
-        assertEq(paypink.ownerBalance(), 10);
+        uint256 platformAfterPay = EXPECTED_ETH / 100;
+        uint256 creatorAfterPay = EXPECTED_ETH - platformAfterPay;
+        assertEq(paypink.creatorBalances(author), creatorAfterPay);
+        assertEq(paypink.ownerBalance(), platformAfterPay);
 
         // --- Reader tips by slug ---
         vm.prank(reader);
-        paypink.tipBySlug{ value: TIP_SLUG }("tipped-article");
+        paypink.tipBySlug{value: TIP_SLUG}("tipped-article");
 
-        // after slug tip: creator 990+495=1485, platform 10+5=15
-        assertEq(paypink.creatorBalances(author), 1485);
-        assertEq(paypink.ownerBalance(), 15);
+        uint256 tipPlatform = TIP_SLUG / 100;
+        uint256 tipCreator = TIP_SLUG - tipPlatform;
+        assertEq(paypink.creatorBalances(author), creatorAfterPay + tipCreator);
+        assertEq(paypink.ownerBalance(), platformAfterPay + tipPlatform);
 
         // tip should add to earned but not views
         Paypink.Article memory article = paypink.getArticle("tipped-article");
         assertEq(article.views, 1);
-        assertEq(article.earned, PRICE + TIP_SLUG);
+        assertEq(article.earned, EXPECTED_ETH + TIP_SLUG);
 
         // --- Reader2 tips author directly by address ---
         vm.deal(reader2, 1 ether);
         vm.prank(reader2);
-        paypink.tipByAddress{ value: TIP_DIRECT }(author);
+        paypink.tipByAddress{value: TIP_DIRECT}(author);
 
-        // after direct tip: creator 1485+198=1683, platform 15+2=17
-        assertEq(paypink.creatorBalances(author), 1683);
-        assertEq(paypink.ownerBalance(), 17);
+        uint256 directPlatform = TIP_DIRECT / 100;
+        uint256 directCreator = TIP_DIRECT - directPlatform;
+        uint256 totalCreator = creatorAfterPay + tipCreator + directCreator;
+        uint256 totalPlatform = platformAfterPay + tipPlatform + directPlatform;
+        assertEq(paypink.creatorBalances(author), totalCreator);
+        assertEq(paypink.ownerBalance(), totalPlatform);
 
         // direct tip should not affect article earned
         article = paypink.getArticle("tipped-article");
-        assertEq(article.earned, PRICE + TIP_SLUG);
+        assertEq(article.earned, EXPECTED_ETH + TIP_SLUG);
 
         // --- Author withdraws everything ---
         uint256 expectedPayout = paypink.creatorBalances(author);
@@ -138,10 +143,31 @@ contract PaypinkTest is Test {
         // --- Platform withdraws ---
         vm.prank(deployer);
         paypink.withdrawPlatformFees();
-        assertEq(deployer.balance, 17);
+        assertEq(deployer.balance, totalPlatform);
         assertEq(paypink.ownerBalance(), 0);
 
         // --- Contract should have zero balance left ---
         assertEq(address(paypink).balance, 0);
+    }
+
+    function test_OverpayAndRefund_IntegrationFlow() public {
+        vm.prank(author);
+        paypink.registerArticle("overpay-test", TEN_USD, "hash");
+
+        vm.deal(reader, 1 ether);
+        uint256 balanceBefore = reader.balance;
+
+        // Send 5% extra
+        uint256 overpayment = EXPECTED_ETH * 105 / 100;
+        vm.prank(reader);
+        paypink.payForArticle{value: overpayment}("overpay-test");
+
+        // Reader should have only spent EXPECTED_ETH (excess refunded)
+        assertEq(balanceBefore - reader.balance, EXPECTED_ETH);
+
+        // Article earned should reflect exact amount, not overpayment
+        Paypink.Article memory article = paypink.getArticle("overpay-test");
+        assertEq(article.earned, EXPECTED_ETH);
+        assertTrue(paypink.hasPaid(keccak256(abi.encodePacked("overpay-test")), reader));
     }
 }

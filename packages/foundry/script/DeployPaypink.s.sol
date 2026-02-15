@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import "./DeployHelpers.s.sol";
 import "../contracts/Paypink.sol";
+import "../contracts/mocks/MockV3Aggregator.sol";
 
 /**
  * @notice Deploy script for the Paypink contract.
@@ -26,10 +27,19 @@ contract DeployPaypink is ScaffoldETHDeploy {
      */
     function run() external ScaffoldEthDeployerRunner {
         address paymentToken = vm.envOr("PAYMENT_TOKEN", address(0));
-        // Allow address(0) only on local Anvil (chain 31337). Live networks must set PAYMENT_TOKEN.
-        if (block.chainid != 31337) {
+        address priceFeed = vm.envOr("PRICE_FEED", address(0));
+
+        if (block.chainid == 31337) {
+            // Local Anvil: deploy a mock price feed ($2000 ETH, 8 decimals)
+            if (priceFeed == address(0)) {
+                MockV3Aggregator mock = new MockV3Aggregator(8, 2000_00000000);
+                priceFeed = address(mock);
+            }
+        } else {
             require(paymentToken != address(0), "PAYMENT_TOKEN env var required for live network deployments");
+            require(priceFeed != address(0), "PRICE_FEED env var required for live network deployments");
         }
-        new Paypink(paymentToken);
+
+        new Paypink(paymentToken, priceFeed);
     }
 }

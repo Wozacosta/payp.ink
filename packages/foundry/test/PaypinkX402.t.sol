@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
 import {Paypink} from "../contracts/Paypink.sol";
+import {MockV3Aggregator} from "../contracts/mocks/MockV3Aggregator.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract PaypinkX402Test is Test {
@@ -13,6 +14,7 @@ contract PaypinkX402Test is Test {
     address stranger = makeAddr("stranger");
 
     ERC20Mock usdc;
+    MockV3Aggregator mockFeed;
     Paypink paypink;
 
     modifier withArticle() {
@@ -31,8 +33,9 @@ contract PaypinkX402Test is Test {
 
     function setUp() public {
         usdc = new ERC20Mock();
+        mockFeed = new MockV3Aggregator(8, 2000_00000000);
         vm.startPrank(deployer);
-        paypink = new Paypink(address(usdc));
+        paypink = new Paypink(address(usdc), address(mockFeed));
         paypink.setAuthorizedX402Caller(x402Caller);
         vm.stopPrank();
     }

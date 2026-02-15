@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { EtherInput } from "@scaffold-ui/components";
 import type { NextPage } from "next";
 import { useSession } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { parseEther } from "viem";
+import { parseUnits } from "viem";
 import { useAccount } from "wagmi";
 import { SignInButton } from "~~/components/SignInButton";
 import { useScaffoldWriteContract, useTransactor } from "~~/hooks/scaffold-eth";
@@ -107,12 +106,12 @@ const CreateArticle: NextPage = () => {
     setFlowStatus("registering");
     setError("");
 
-    const priceWei = parseEther(price || "0");
+    const priceUsd = parseUnits(price || "0", 18);
 
     await writeTx(async () => {
       const hash = await writeContractAsync({
         functionName: "registerArticle",
-        args: [articleSlug, priceWei, contentHash],
+        args: [articleSlug, priceUsd, contentHash],
       });
       if (!hash) throw new Error("Transaction rejected");
       return hash;
@@ -298,16 +297,24 @@ const CreateArticle: NextPage = () => {
 
           {/* Price */}
           <fieldset className="fieldset">
-            <label className="label font-semibold">Price</label>
-            <EtherInput
-              key={formKey}
-              placeholder="0 (free)"
-              onValueChange={({ valueInEth }) => {
-                setPrice(valueInEth);
-                clearRetryState();
-              }}
-              disabled={isBusy}
-            />
+            <label className="label font-semibold">Price (USD)</label>
+            <label className="input w-full flex items-center gap-2">
+              <span className="text-base-content/50">$</span>
+              <input
+                key={formKey}
+                type="number"
+                min="0"
+                step="0.01"
+                className="grow bg-transparent outline-none"
+                placeholder="0 (free)"
+                value={price}
+                onChange={e => {
+                  setPrice(e.target.value);
+                  clearRetryState();
+                }}
+                disabled={isBusy}
+              />
+            </label>
           </fieldset>
 
           {/* Body */}

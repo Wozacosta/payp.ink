@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     YourContract: {
-      address: "0xb19b36b1456e65e3a6d514d3f715f204bd59f431",
+      address: "0xe1aa25618fa0c7a1cfdab5d6b456af611873b629",
       abi: [
         {
           type: "constructor",
@@ -148,16 +148,21 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 83,
+      deployedOnBlock: 249,
     },
     Paypink: {
-      address: "0x8ce361602b935680e8dec218b820ff5056beb7af",
+      address: "0x0c8e79f3534b00d9a3d4a856b665bf4ebc22f2ba",
       abi: [
         {
           type: "constructor",
           inputs: [
             {
               name: "_paymentToken",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_priceFeed",
               type: "address",
               internalType: "address",
             },
@@ -268,6 +273,25 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "getArticlePriceInEth",
+          inputs: [
+            {
+              name: "slug",
+              type: "string",
+              internalType: "string",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "getCreatorArticles",
           inputs: [
             {
@@ -324,6 +348,19 @@ const deployedContracts = {
               name: "paid",
               type: "bool",
               internalType: "bool",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "maxStaleness",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
             },
           ],
           stateMutability: "view",
@@ -395,6 +432,19 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "priceFeed",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "contract AggregatorV3Interface",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "recordX402Payment",
           inputs: [
             {
@@ -454,10 +504,36 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "setMaxStaleness",
+          inputs: [
+            {
+              name: "_maxStaleness",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
           name: "setPaymentToken",
           inputs: [
             {
               name: "_token",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "setPriceFeed",
+          inputs: [
+            {
+              name: "_feed",
               type: "address",
               internalType: "address",
             },
@@ -700,7 +776,28 @@ const deployedContracts = {
         },
         {
           type: "error",
+          name: "Paypink__InsufficientPayment",
+          inputs: [
+            {
+              name: "required",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "sent",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+        },
+        {
+          type: "error",
           name: "Paypink__InvalidAddress",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "Paypink__InvalidPrice",
           inputs: [],
         },
         {
@@ -715,7 +812,17 @@ const deployedContracts = {
         },
         {
           type: "error",
+          name: "Paypink__RefundFailed",
+          inputs: [],
+        },
+        {
+          type: "error",
           name: "Paypink__SlugTaken",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "Paypink__StalePrice",
           inputs: [],
         },
         {
@@ -730,22 +837,6 @@ const deployedContracts = {
         },
         {
           type: "error",
-          name: "Paypink__WrongPrice",
-          inputs: [
-            {
-              name: "expected",
-              type: "uint256",
-              internalType: "uint256",
-            },
-            {
-              name: "actual",
-              type: "uint256",
-              internalType: "uint256",
-            },
-          ],
-        },
-        {
-          type: "error",
           name: "SafeERC20FailedOperation",
           inputs: [
             {
@@ -757,7 +848,172 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 84,
+      deployedOnBlock: 250,
+    },
+    MockV3Aggregator: {
+      address: "0xe1da8919f262ee86f9be05059c9280142cf23f48",
+      abi: [
+        {
+          type: "constructor",
+          inputs: [
+            {
+              name: "_decimals",
+              type: "uint8",
+              internalType: "uint8",
+            },
+            {
+              name: "_initialAnswer",
+              type: "int256",
+              internalType: "int256",
+            },
+          ],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "answer",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "int256",
+              internalType: "int256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "decimals",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint8",
+              internalType: "uint8",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "description",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "string",
+              internalType: "string",
+            },
+          ],
+          stateMutability: "pure",
+        },
+        {
+          type: "function",
+          name: "latestRoundData",
+          inputs: [],
+          outputs: [
+            {
+              name: "roundId_",
+              type: "uint80",
+              internalType: "uint80",
+            },
+            {
+              name: "answer_",
+              type: "int256",
+              internalType: "int256",
+            },
+            {
+              name: "startedAt_",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "updatedAt_",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "answeredInRound_",
+              type: "uint80",
+              internalType: "uint80",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "roundId",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint80",
+              internalType: "uint80",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "updateAnswer",
+          inputs: [
+            {
+              name: "_answer",
+              type: "int256",
+              internalType: "int256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "updateRoundData",
+          inputs: [
+            {
+              name: "_answer",
+              type: "int256",
+              internalType: "int256",
+            },
+            {
+              name: "_updatedAt",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "updatedAt",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "version",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "pure",
+        },
+      ],
+      inheritedFunctions: {},
+      deployedOnBlock: 250,
     },
   },
   763373: {
@@ -916,6 +1172,11 @@ const deployedContracts = {
               type: "address",
               internalType: "address",
             },
+            {
+              name: "_priceFeed",
+              type: "address",
+              internalType: "address",
+            },
           ],
           stateMutability: "nonpayable",
         },
@@ -1023,6 +1284,25 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "getArticlePriceInEth",
+          inputs: [
+            {
+              name: "slug",
+              type: "string",
+              internalType: "string",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "getCreatorArticles",
           inputs: [
             {
@@ -1079,6 +1359,19 @@ const deployedContracts = {
               name: "paid",
               type: "bool",
               internalType: "bool",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "maxStaleness",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
             },
           ],
           stateMutability: "view",
@@ -1150,6 +1443,19 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "priceFeed",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "contract AggregatorV3Interface",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "recordX402Payment",
           inputs: [
             {
@@ -1209,10 +1515,36 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "setMaxStaleness",
+          inputs: [
+            {
+              name: "_maxStaleness",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
           name: "setPaymentToken",
           inputs: [
             {
               name: "_token",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "setPriceFeed",
+          inputs: [
+            {
+              name: "_feed",
               type: "address",
               internalType: "address",
             },
@@ -1455,7 +1787,28 @@ const deployedContracts = {
         },
         {
           type: "error",
+          name: "Paypink__InsufficientPayment",
+          inputs: [
+            {
+              name: "required",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "sent",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+        },
+        {
+          type: "error",
           name: "Paypink__InvalidAddress",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "Paypink__InvalidPrice",
           inputs: [],
         },
         {
@@ -1470,7 +1823,17 @@ const deployedContracts = {
         },
         {
           type: "error",
+          name: "Paypink__RefundFailed",
+          inputs: [],
+        },
+        {
+          type: "error",
           name: "Paypink__SlugTaken",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "Paypink__StalePrice",
           inputs: [],
         },
         {
@@ -1482,22 +1845,6 @@ const deployedContracts = {
           type: "error",
           name: "Paypink__Withdraw_FailedToSend",
           inputs: [],
-        },
-        {
-          type: "error",
-          name: "Paypink__WrongPrice",
-          inputs: [
-            {
-              name: "expected",
-              type: "uint256",
-              internalType: "uint256",
-            },
-            {
-              name: "actual",
-              type: "uint256",
-              internalType: "uint256",
-            },
-          ],
         },
         {
           type: "error",

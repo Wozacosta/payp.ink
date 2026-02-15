@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { formatEther } from "viem";
+import { formatEther, formatUnits } from "viem";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { getChainName } from "~~/utils/chainName";
 
@@ -21,7 +21,7 @@ const ArticleRow = ({ article }: { article: OffChainArticle }) => {
     args: [article.slug],
   });
 
-  const price = onChain?.price != null ? formatEther(onChain.price) : null;
+  const price = onChain?.price != null ? formatUnits(onChain.price, 18) : null;
   const views = onChain?.views != null ? onChain.views.toString() : null;
   const earned = onChain?.earned != null ? formatEther(onChain.earned) : null;
 
@@ -37,7 +37,7 @@ const ArticleRow = ({ article }: { article: OffChainArticle }) => {
           {article.status}
         </span>
       </td>
-      <td className="text-right">{price == null ? "—" : price === "0" ? "Free" : `${price} ETH`}</td>
+      <td className="text-right">{price == null ? "—" : price === "0" ? "Free" : `$${price}`}</td>
       <td className="text-right">{views ?? "—"}</td>
       <td className="text-right">{earned == null ? "—" : earned === "0" ? "0" : `${earned} ETH`}</td>
       <td className="text-sm">{getChainName(article.chainId)}</td>
