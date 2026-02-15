@@ -1,23 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
 import { GetSiweMessageOptions, RainbowKitSiweNextAuthProvider } from "@rainbow-me/rainbowkit-siwe-next-auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { SessionProvider, getSession } from "next-auth/react";
+import { SessionProvider, getSession, signOut, useSession } from "next-auth/react";
 import { AppProgressBar as ProgressBar } from "next-nprogress-bar";
 import { useTheme } from "next-themes";
 import { Toaster } from "react-hot-toast";
-import { WagmiProvider } from "wagmi";
+import { WagmiProvider, useAccount } from "wagmi";
 import { Footer } from "~~/components/Footer";
 import { Header } from "~~/components/Header";
 import { BlockieAvatar } from "~~/components/scaffold-eth";
 import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 
+/**
+ * Signs out the SIWE session when the wallet account changes.
+ * Workaround for MetaMask v13 (MV3) not firing connector "change" events
+ * that RainbowKit's built-in auth provider relies on.
+ */
+const SiweAccountGuard = () => {
+  const { address } = useAccount();
+  const { data: session } = useSession();
+  const prevAddress = useRef(address);
+
+  useEffect(() => {
+    if (prevAddress.current && address && prevAddress.current !== address && session) {
+      signOut({ redirect: false });
+    }
+    prevAddress.current = address;
+  }, [address, session]);
+
+  return null;
+};
+
 const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   return (
     <>
       <div className={`flex flex-col min-h-screen `}>
+        <SiweAccountGuard />
         <Header />
         <main className="relative flex flex-col flex-1">{children}</main>
         <Footer />

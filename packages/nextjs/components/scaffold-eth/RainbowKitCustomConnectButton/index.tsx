@@ -10,6 +10,7 @@ import { Balance } from "@scaffold-ui/components";
 import { Address } from "viem";
 import { useNetworkColor } from "~~/hooks/scaffold-eth";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
+import scaffoldConfig from "~~/scaffold.config";
 import { getBlockExplorerAddressLink } from "~~/utils/scaffold-eth";
 
 /**
@@ -21,8 +22,9 @@ export const RainbowKitCustomConnectButton = () => {
 
   return (
     <ConnectButton.Custom>
-      {({ account, chain, openConnectModal, mounted }) => {
+      {({ account, chain, openConnectModal, authenticationStatus, mounted }) => {
         const connected = mounted && account && chain;
+        const connectedChain = chain ? scaffoldConfig.targetNetworks.find(n => n.id === chain.id) : undefined;
         const blockExplorerAddressLink = account
           ? getBlockExplorerAddressLink(targetNetwork, account.address)
           : undefined;
@@ -42,11 +44,20 @@ export const RainbowKitCustomConnectButton = () => {
                 return <WrongNetworkDropdown />;
               }
 
+              if (authenticationStatus !== "authenticated") {
+                return (
+                  <button className="btn btn-primary btn-sm" onClick={openConnectModal} type="button">
+                    Sign In
+                  </button>
+                );
+              }
+
               return (
                 <>
                   <div className="flex flex-col items-center mr-2">
                     <Balance
                       address={account.address as Address}
+                      chain={connectedChain}
                       style={{
                         minHeight: "0",
                         height: "auto",

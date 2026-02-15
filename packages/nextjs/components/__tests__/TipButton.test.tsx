@@ -15,6 +15,7 @@ vi.mock("~~/hooks/scaffold-eth", () => ({
   useScaffoldWriteContract: () => ({
     writeContractAsync: mockWriteContractAsync,
   }),
+  useTransactor: () => (fn: () => Promise<string>) => fn(),
 }));
 
 let capturedOnValueChange: ((val: { valueInEth: string }) => void) | undefined;
@@ -112,7 +113,7 @@ describe("TipButton", () => {
   });
 
   it("calls tipBySlug with correct args on successful tip", async () => {
-    mockWriteContractAsync.mockResolvedValueOnce(undefined);
+    mockWriteContractAsync.mockResolvedValueOnce("0xabc");
     renderConnected();
     openFormAndSetAmount("0.05");
 
@@ -125,12 +126,10 @@ describe("TipButton", () => {
         value: 50000000000000000n,
       });
     });
-
-    expect(notification.success).toHaveBeenCalledWith("Tip sent!");
   });
 
   it("closes form after successful tip", async () => {
-    mockWriteContractAsync.mockResolvedValueOnce(undefined);
+    mockWriteContractAsync.mockResolvedValueOnce("0xabc");
     renderConnected();
     openFormAndSetAmount("0.01");
 
@@ -141,27 +140,16 @@ describe("TipButton", () => {
     });
   });
 
-  it("shows error notification when contract call fails", async () => {
+  it("does not crash when contract call fails", async () => {
     mockWriteContractAsync.mockRejectedValueOnce(new Error("User rejected"));
     renderConnected();
     openFormAndSetAmount("0.01");
 
     fireEvent.click(screen.getByText("Send tip"));
 
+    // Form should remain open (tip failed, user can retry)
     await waitFor(() => {
-      expect(notification.error).toHaveBeenCalledWith("User rejected");
-    });
-  });
-
-  it("shows shortMessage from contract error when available", async () => {
-    mockWriteContractAsync.mockRejectedValueOnce({ shortMessage: "Insufficient funds" });
-    renderConnected();
-    openFormAndSetAmount("0.01");
-
-    fireEvent.click(screen.getByText("Send tip"));
-
-    await waitFor(() => {
-      expect(notification.error).toHaveBeenCalledWith("Insufficient funds");
+      expect(screen.getByText("Send tip")).not.toBeDisabled();
     });
   });
 

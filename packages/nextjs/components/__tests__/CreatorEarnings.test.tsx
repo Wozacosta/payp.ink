@@ -1,7 +1,6 @@
 import { CreatorEarnings } from "../CreatorEarnings";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { notification } from "~~/utils/scaffold-eth";
 
 // --- Mocks ---
 
@@ -13,25 +12,26 @@ vi.mock("~~/hooks/scaffold-eth", () => ({
     writeContractAsync: mockWriteContractAsync,
     isPending: false,
   }),
+  useTransactor: () => (fn: () => Promise<string>) => fn(),
 }));
 
-vi.mock("~~/utils/scaffold-eth", () => ({
-  notification: { success: vi.fn(), error: vi.fn() },
-}));
+// useTransactor handles notifications — no need to mock notification module
 
 // --- Helpers ---
 
 const CREATOR = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" as const;
 
+const mockRefetch = vi.fn();
+
 function mockBalances(ethBalance: bigint | undefined, tokenBalance: bigint | undefined) {
   mockUseScaffoldReadContract.mockImplementation((args: { functionName: string }) => {
     if (args.functionName === "getCreatorBalance") {
-      return { data: ethBalance, isLoading: ethBalance === undefined };
+      return { data: ethBalance, isLoading: ethBalance === undefined, refetch: mockRefetch };
     }
     if (args.functionName === "creatorTokenBalances") {
-      return { data: tokenBalance, isLoading: tokenBalance === undefined };
+      return { data: tokenBalance, isLoading: tokenBalance === undefined, refetch: mockRefetch };
     }
-    return { data: undefined, isLoading: true };
+    return { data: undefined, isLoading: true, refetch: mockRefetch };
   });
 }
 
@@ -102,7 +102,7 @@ describe("CreatorEarnings", () => {
   });
 
   it("calls withdraw() on ETH withdraw click", async () => {
-    mockWriteContractAsync.mockResolvedValueOnce(undefined);
+    mockWriteContractAsync.mockResolvedValueOnce("0xabc");
     mockBalances(1000000000000000000n, 0n);
     render(<CreatorEarnings address={CREATOR} />);
 
@@ -113,11 +113,11 @@ describe("CreatorEarnings", () => {
         functionName: "withdraw",
       });
     });
-    expect(notification.success).toHaveBeenCalledWith("ETH withdrawn!");
+    expect(mockRefetch).toHaveBeenCalled();
   });
 
   it("calls withdrawTokens() on USDC withdraw click", async () => {
-    mockWriteContractAsync.mockResolvedValueOnce(undefined);
+    mockWriteContractAsync.mockResolvedValueOnce("0xabc");
     mockBalances(0n, 5000000n);
     render(<CreatorEarnings address={CREATOR} />);
 
@@ -128,42 +128,32 @@ describe("CreatorEarnings", () => {
         functionName: "withdrawTokens",
       });
     });
-    expect(notification.success).toHaveBeenCalledWith("USDC withdrawn!");
+    expect(mockRefetch).toHaveBeenCalled();
   });
 
-  it("shows error notification when ETH withdraw fails", async () => {
+  it("does not crash when ETH withdraw fails", async () => {
     mockWriteContractAsync.mockRejectedValueOnce(new Error("User rejected"));
     mockBalances(1000000000000000000n, 0n);
     render(<CreatorEarnings address={CREATOR} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Withdraw ETH/i }));
 
+    // Button should re-enable after failure
     await waitFor(() => {
-      expect(notification.error).toHaveBeenCalledWith("User rejected");
+      expect(screen.getByRole("button", { name: /Withdraw ETH/i })).not.toBeDisabled();
     });
   });
 
-  it("shows shortMessage from contract error when available", async () => {
-    mockWriteContractAsync.mockRejectedValueOnce({ shortMessage: "Insufficient balance" });
-    mockBalances(1000000000000000000n, 0n);
-    render(<CreatorEarnings address={CREATOR} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /Withdraw ETH/i }));
-
-    await waitFor(() => {
-      expect(notification.error).toHaveBeenCalledWith("Insufficient balance");
-    });
-  });
-
-  it("shows error notification when USDC withdraw fails", async () => {
+  it("does not crash when USDC withdraw fails", async () => {
     mockWriteContractAsync.mockRejectedValueOnce(new Error("tx reverted"));
     mockBalances(0n, 5000000n);
     render(<CreatorEarnings address={CREATOR} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Withdraw USDC/i }));
 
+    // Button should re-enable after failure
     await waitFor(() => {
-      expect(notification.error).toHaveBeenCalledWith("tx reverted");
+      expect(screen.getByRole("button", { name: /Withdraw USDC/i })).not.toBeDisabled();
     });
   });
 });

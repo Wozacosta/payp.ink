@@ -10,6 +10,7 @@ const ArticlesPage: NextPage = async () => {
       slug: articles.slug,
       title: articles.title,
       creatorAddress: articles.creatorAddress,
+      chainId: articles.chainId,
       createdAt: articles.createdAt,
     })
     .from(articles)
@@ -30,6 +31,7 @@ const ArticlesPage: NextPage = async () => {
               slug={article.slug}
               title={article.title}
               creatorAddress={article.creatorAddress}
+              chainId={article.chainId}
               createdAt={article.createdAt.toISOString()}
             />
           ))}

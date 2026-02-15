@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
         slug: articles.slug,
         title: articles.title,
         status: articles.status,
+        chainId: articles.chainId,
         createdAt: articles.createdAt,
       })
       .from(articles)

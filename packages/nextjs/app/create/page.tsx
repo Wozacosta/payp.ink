@@ -9,7 +9,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { parseEther } from "viem";
 import { useAccount } from "wagmi";
-import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { SignInButton } from "~~/components/SignInButton";
+import { useScaffoldWriteContract, useTransactor } from "~~/hooks/scaffold-eth";
+import { getErrorMessage } from "~~/utils/getErrorMessage";
 import { notification } from "~~/utils/scaffold-eth";
 
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -37,6 +39,7 @@ const CreateArticle: NextPage = () => {
   const [retryFrom, setRetryFrom] = useState<"registering" | "publishing" | null>(null);
 
   const { writeContractAsync } = useScaffoldWriteContract("Paypink");
+  const writeTx = useTransactor();
 
   const isSlugValid = slug.length > 0 && slug.length <= MAX_SLUG_LENGTH && SLUG_REGEX.test(slug);
   const isFormValid = title.trim().length > 0 && isSlugValid && body.trim().length > 0;
@@ -57,7 +60,7 @@ const CreateArticle: NextPage = () => {
   };
 
   const handleFlowError = (e: unknown, step: FlowStep) => {
-    const message = (e as any)?.shortMessage || (e instanceof Error ? e.message : null) || "Something went wrong.";
+    const message = getErrorMessage(e);
 
     if (step === "registering") {
       setError(`Blockchain registration failed: ${message}`);
@@ -106,9 +109,13 @@ const CreateArticle: NextPage = () => {
 
     const priceWei = parseEther(price || "0");
 
-    await writeContractAsync({
-      functionName: "registerArticle",
-      args: [articleSlug, priceWei, contentHash],
+    await writeTx(async () => {
+      const hash = await writeContractAsync({
+        functionName: "registerArticle",
+        args: [articleSlug, priceWei, contentHash],
+      });
+      if (!hash) throw new Error("Transaction rejected");
+      return hash;
     });
   };
 
@@ -195,7 +202,8 @@ const CreateArticle: NextPage = () => {
     return (
       <div className="flex items-center flex-col grow pt-10">
         <h1 className="text-2xl font-bold mb-4">Create Article</h1>
-        <p className="text-base-content/70">Sign in with your wallet to create an article.</p>
+        <p className="text-base-content/70 mb-4">Sign in with your wallet to create an article.</p>
+        <SignInButton />
       </div>
     );
   }

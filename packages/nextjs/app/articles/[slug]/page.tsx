@@ -13,10 +13,12 @@ import remarkGfm from "remark-gfm";
 import { formatEther, formatUnits } from "viem";
 import { baseSepolia } from "viem/chains";
 import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
+import { SignInButton } from "~~/components/SignInButton";
 import { TipButton } from "~~/components/TipButton";
-import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldReadContract, useScaffoldWriteContract, useTransactor } from "~~/hooks/scaffold-eth";
 import { getSlugHash } from "~~/services/web3/slugHash";
 import { verifyContentIntegrity } from "~~/utils/contentHash";
+import { getErrorMessage } from "~~/utils/getErrorMessage";
 import { notification } from "~~/utils/scaffold-eth";
 
 type ArticleContent = {
@@ -59,6 +61,7 @@ const ArticlePage: NextPage = () => {
   });
 
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "Paypink" });
+  const writeTx = useTransactor();
 
   const isPaying = payingEth || payingUsdc;
   const isFree = onChainArticle ? onChainArticle.price === 0n : false;
@@ -129,18 +132,20 @@ const ArticlePage: NextPage = () => {
 
     setPayingEth(true);
     try {
-      await writeContractAsync({
-        functionName: "payForArticle",
-        args: [slug],
-        value: onChainArticle.price,
+      await writeTx(async () => {
+        const hash = await writeContractAsync({
+          functionName: "payForArticle",
+          args: [slug],
+          value: onChainArticle.price,
+        });
+        if (!hash) throw new Error("Transaction rejected");
+        return hash;
       });
 
-      notification.success("Payment successful!");
       await refetchHasPaid();
       await fetchContent();
-    } catch (e: unknown) {
-      const message = (e as any)?.shortMessage || (e instanceof Error ? e.message : "Payment failed.");
-      notification.error(message);
+    } catch {
+      // useTransactor already shows error notification
     } finally {
       setPayingEth(false);
     }
@@ -190,8 +195,7 @@ const ArticlePage: NextPage = () => {
       await refetchHasPaid();
       checkIntegrity(data.body);
     } catch (e: unknown) {
-      const message = (e as any)?.shortMessage || (e instanceof Error ? e.message : "USDC payment failed.");
-      notification.error(message);
+      notification.error(getErrorMessage(e, "USDC payment failed."));
     } finally {
       // Switch back to the original chain
       if (previousChainId && previousChainId !== baseSepolia.id) {
@@ -257,7 +261,10 @@ const ArticlePage: NextPage = () => {
             {!address ? (
               <p className="text-base-content/70">Connect your wallet to pay.</p>
             ) : !session?.address ? (
-              <p className="text-base-content/70">Sign in with your wallet to pay.</p>
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-base-content/70">Sign in with your wallet to pay.</p>
+                <SignInButton />
+              </div>
             ) : (
               <div className="flex gap-4">
                 <button className="btn btn-primary" onClick={handlePayEth} disabled={isPaying}>

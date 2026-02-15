@@ -4,7 +4,7 @@ import { useState } from "react";
 import { EtherInput } from "@scaffold-ui/components";
 import { parseEther } from "viem";
 import { useAccount } from "wagmi";
-import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldWriteContract, useTransactor } from "~~/hooks/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
 
 type TipButtonProps = {
@@ -18,6 +18,7 @@ export const TipButton = ({ slug }: TipButtonProps) => {
   const [isTipping, setIsTipping] = useState(false);
 
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "Paypink" });
+  const writeTx = useTransactor();
 
   const handleTip = async () => {
     // Client-side only guard — the contract does not revert on zero-value tips
@@ -28,17 +29,19 @@ export const TipButton = ({ slug }: TipButtonProps) => {
 
     setIsTipping(true);
     try {
-      await writeContractAsync({
-        functionName: "tipBySlug",
-        args: [slug],
-        value: parseEther(tipAmount),
+      await writeTx(async () => {
+        const hash = await writeContractAsync({
+          functionName: "tipBySlug",
+          args: [slug],
+          value: parseEther(tipAmount),
+        });
+        if (!hash) throw new Error("Transaction rejected");
+        return hash;
       });
-      notification.success("Tip sent!");
       setTipAmount("");
       setIsOpen(false);
-    } catch (e: unknown) {
-      const message = (e as any)?.shortMessage || (e instanceof Error ? e.message : "Tip failed.");
-      notification.error(message);
+    } catch {
+      // useTransactor already shows error notification
     } finally {
       setIsTipping(false);
     }

@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { formatEther } from "viem";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import { getChainName } from "~~/utils/chainName";
 
 type OffChainArticle = {
   slug: string;
   title: string;
   status: string;
+  chainId: number;
   createdAt: string;
 };
 
@@ -38,6 +40,7 @@ const ArticleRow = ({ article }: { article: OffChainArticle }) => {
       <td className="text-right">{price == null ? "—" : price === "0" ? "Free" : `${price} ETH`}</td>
       <td className="text-right">{views ?? "—"}</td>
       <td className="text-right">{earned == null ? "—" : earned === "0" ? "0" : `${earned} ETH`}</td>
+      <td className="text-sm">{getChainName(article.chainId)}</td>
       <td className="text-right text-sm text-base-content/70">{new Date(article.createdAt).toLocaleDateString()}</td>
     </tr>
   );
@@ -48,27 +51,27 @@ export const CreatorArticleList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchArticles = async () => {
-      setIsLoading(true);
-      setError("");
-      try {
-        const res = await fetch("/api/dashboard");
-        if (!res.ok) {
-          setError("Failed to load articles");
-          return;
-        }
-        const data = await res.json();
-        setArticles(data.articles);
-      } catch {
+  const fetchArticles = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/dashboard");
+      if (!res.ok) {
         setError("Failed to load articles");
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
-
-    fetchArticles();
+      const data = await res.json();
+      setArticles(data.articles);
+    } catch {
+      setError("Failed to load articles");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchArticles();
+  }, [fetchArticles]);
 
   if (isLoading) {
     return (
@@ -82,6 +85,9 @@ export const CreatorArticleList = () => {
     return (
       <div className="alert alert-error">
         <span>{error}</span>
+        <button className="btn btn-sm" onClick={fetchArticles}>
+          Retry
+        </button>
       </div>
     );
   }
@@ -100,6 +106,7 @@ export const CreatorArticleList = () => {
             <th className="text-right">Price</th>
             <th className="text-right">Views</th>
             <th className="text-right">Earned</th>
+            <th>Chain</th>
             <th className="text-right">Created</th>
           </tr>
         </thead>

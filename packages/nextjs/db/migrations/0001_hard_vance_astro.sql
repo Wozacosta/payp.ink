@@ -1,0 +1,1 @@
+ALTER TABLE "articles" ADD COLUMN "chain_id" integer NOT NULL;

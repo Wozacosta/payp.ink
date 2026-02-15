@@ -15,6 +15,10 @@ vi.mock("next-auth/react", () => ({
   useSession: () => mockUseSession(),
 }));
 
+vi.mock("@rainbow-me/rainbowkit", () => ({
+  useConnectModal: () => ({ openConnectModal: vi.fn() }),
+}));
+
 vi.mock("~~/components/CreatorEarnings", () => ({
   CreatorEarnings: ({ address }: { address: string }) => (
     <div data-testid="creator-earnings">Earnings for {address}</div>
@@ -66,10 +70,11 @@ describe("DashboardPage", () => {
     expect(screen.queryByTestId("creator-article-list")).not.toBeInTheDocument();
   });
 
-  it("shows sign in message when connected but not signed in", () => {
+  it("shows sign in message and button when connected but not signed in", () => {
     setupConnectedNotSignedIn();
     render(<DashboardPage />);
     expect(screen.getByText(/sign in with your wallet/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
     expect(screen.queryByTestId("creator-earnings")).not.toBeInTheDocument();
     expect(screen.queryByTestId("creator-article-list")).not.toBeInTheDocument();
   });

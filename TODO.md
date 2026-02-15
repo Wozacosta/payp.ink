@@ -131,13 +131,13 @@ Articles are immutable after publishing — no editing the body once registered 
 ### Article discovery
 
 - [x] Build a simple "recent articles" listing page — query DB for published articles, show title + creator + price. Link to `/[slug]`
-- [ ] (Optional) "Browse by creator" page
+- [x] (Optional) "Browse by creator" page
 
 ## Phase 4 — Polish & Deploy
 
 - [ ] Verify wallet connection works on Ink (Scaffold-ETH handles RainbowKit/Wagmi, just test it)
-- [ ] Add loading states for all contract interactions (pending tx toasts, skeleon loaders for data fetching)
-- [ ] Add error handling for contract reverts, DB failures, network issues — user-facing error messages
+- [x] Add loading states for all contract interactions (pending tx toasts, skeleon loaders for data fetching)
+- [x] Add error handling for contract reverts, DB failures, network issues — user-facing error messages
 - [ ] Test full round-trip on local Anvil: create article → save to DB → register on-chain → pay (ETH path) → read back → verify content hash
 - [ ] Test full round-trip on local Anvil: create article → pay (x402 path) → verify `recordX402Payment` state → read back
 - [ ] Test withdrawal flows: creator ETH withdrawal, creator ERC-20 withdrawal, platform withdrawals

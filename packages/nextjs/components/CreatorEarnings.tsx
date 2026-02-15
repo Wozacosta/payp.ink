@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { formatEther, formatUnits } from "viem";
-import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
-import { notification } from "~~/utils/scaffold-eth";
+import { useScaffoldReadContract, useScaffoldWriteContract, useTransactor } from "~~/hooks/scaffold-eth";
 
 type CreatorEarningsProps = {
   address: `0x${string}`;
@@ -13,28 +12,40 @@ export const CreatorEarnings = ({ address }: CreatorEarningsProps) => {
   const [isWithdrawingEth, setIsWithdrawingEth] = useState(false);
   const [isWithdrawingTokens, setIsWithdrawingTokens] = useState(false);
 
-  const { data: ethBalance, isLoading: ethLoading } = useScaffoldReadContract({
+  const {
+    data: ethBalance,
+    isLoading: ethLoading,
+    refetch: refetchEth,
+  } = useScaffoldReadContract({
     contractName: "Paypink",
     functionName: "getCreatorBalance",
     args: [address],
   });
 
-  const { data: tokenBalance, isLoading: tokenLoading } = useScaffoldReadContract({
+  const {
+    data: tokenBalance,
+    isLoading: tokenLoading,
+    refetch: refetchTokens,
+  } = useScaffoldReadContract({
     contractName: "Paypink",
     functionName: "creatorTokenBalances",
     args: [address],
   });
 
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "Paypink" });
+  const writeTx = useTransactor();
 
   const handleWithdrawEth = async () => {
     setIsWithdrawingEth(true);
     try {
-      await writeContractAsync({ functionName: "withdraw" });
-      notification.success("ETH withdrawn!");
-    } catch (e: unknown) {
-      const message = (e as any)?.shortMessage || (e instanceof Error ? e.message : "Withdrawal failed.");
-      notification.error(message);
+      await writeTx(async () => {
+        const hash = await writeContractAsync({ functionName: "withdraw" });
+        if (!hash) throw new Error("Transaction rejected");
+        return hash;
+      });
+      await refetchEth();
+    } catch {
+      // useTransactor already shows error notification
     } finally {
       setIsWithdrawingEth(false);
     }
@@ -43,11 +54,14 @@ export const CreatorEarnings = ({ address }: CreatorEarningsProps) => {
   const handleWithdrawTokens = async () => {
     setIsWithdrawingTokens(true);
     try {
-      await writeContractAsync({ functionName: "withdrawTokens" });
-      notification.success("USDC withdrawn!");
-    } catch (e: unknown) {
-      const message = (e as any)?.shortMessage || (e instanceof Error ? e.message : "Withdrawal failed.");
-      notification.error(message);
+      await writeTx(async () => {
+        const hash = await writeContractAsync({ functionName: "withdrawTokens" });
+        if (!hash) throw new Error("Transaction rejected");
+        return hash;
+      });
+      await refetchTokens();
+    } catch {
+      // useTransactor already shows error notification
     } finally {
       setIsWithdrawingTokens(false);
     }

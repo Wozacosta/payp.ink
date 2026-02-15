@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useAccount } from "wagmi";
 import { CreatorArticleList } from "~~/components/CreatorArticleList";
 import { CreatorEarnings } from "~~/components/CreatorEarnings";
+import { SignInButton } from "~~/components/SignInButton";
 
 const DashboardPage: NextPage = () => {
   const { address } = useAccount();
@@ -17,7 +18,10 @@ const DashboardPage: NextPage = () => {
       {!address ? (
         <p className="text-base-content/70">Connect your wallet to view your dashboard.</p>
       ) : !session?.address ? (
-        <p className="text-base-content/70">Sign in with your wallet to view your dashboard.</p>
+        <div className="flex flex-col items-start gap-4">
+          <p className="text-base-content/70">Sign in with your wallet to view your dashboard.</p>
+          <SignInButton />
+        </div>
       ) : (
         <div className="flex flex-col gap-8">
           <section>

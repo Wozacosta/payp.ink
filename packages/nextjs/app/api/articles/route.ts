@@ -3,6 +3,7 @@ import { keccak256, toHex } from "viem";
 import { db } from "~~/db";
 import { articles } from "~~/db/schema";
 import { getAuthAddress } from "~~/services/auth/getAuthAddress";
+import { getServerChainId } from "~~/services/web3/serverChainId";
 
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_SLUG_LENGTH = 200;
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
       title,
       body: articleBody,
       creatorAddress: address,
+      chainId: getServerChainId(),
     });
   } catch (e: any) {
     const pgCode = e.code ?? e.cause?.code;

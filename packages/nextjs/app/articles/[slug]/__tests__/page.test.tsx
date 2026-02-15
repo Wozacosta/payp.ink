@@ -32,10 +32,15 @@ vi.mock("~~/hooks/scaffold-eth", () => ({
     writeContractAsync: mockWriteContractAsync,
     isPending: false,
   }),
+  useTransactor: () => (fn: () => Promise<string>) => fn(),
 }));
 
 vi.mock("@scaffold-ui/components", () => ({
   Address: ({ address }: { address: string }) => <span data-testid="address">{address}</span>,
+}));
+
+vi.mock("@rainbow-me/rainbowkit", () => ({
+  useConnectModal: () => ({ openConnectModal: vi.fn() }),
 }));
 
 vi.mock("@x402/core/client", () => ({ x402Client: vi.fn() }));
@@ -157,7 +162,7 @@ describe("ArticlePage", () => {
     expect(screen.getByText("Connect your wallet to pay.")).toBeInTheDocument();
   });
 
-  it("shows 'Sign in with your wallet' when connected but no session", async () => {
+  it("shows 'Sign in with your wallet' and Sign In button when connected but no session", async () => {
     setupMocks({ hasPaid: false, address: READER_ADDRESS, sessionAddress: undefined });
     render(<ArticlePage />);
 
@@ -165,6 +170,7 @@ describe("ArticlePage", () => {
       expect(screen.getByText("This article requires payment")).toBeInTheDocument();
     });
     expect(screen.getByText("Sign in with your wallet to pay.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
   });
 
   it("auto-fetches content when article is free", async () => {
