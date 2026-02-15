@@ -77,7 +77,7 @@ test.describe("Article Flow", () => {
       title: "Paid E2E Article",
       slug: s,
       body: "# Secret Content\n\nThis is premium content.",
-      price: "0.001",
+      price: "2", // $2 USD
     });
 
     // Creator can view (creator bypass)
@@ -85,7 +85,7 @@ test.describe("Article Flow", () => {
     await page.waitForURL(`/articles/${s}`);
 
     await expect(page.getByText("Secret Content")).toBeVisible({ timeout: CONTENT_TIMEOUT });
-    await expect(page.getByText("ETH").first()).toBeVisible();
+    await expect(page.getByText("$2")).toBeVisible();
   });
 
   test("should show paywall for paid article to unauthenticated reader", async ({ page }) => {
@@ -96,15 +96,14 @@ test.describe("Article Flow", () => {
       title: "Paywall E2E Article",
       slug: s,
       body: "# Hidden Content\n\nYou should not see this without paying.",
-      price: "0.001",
+      price: "2", // $2 USD
     });
 
     // Creator can view — verify price badge as proxy for paywall setup
     await page.getByRole("link", { name: "View Article" }).click();
     await page.waitForURL(`/articles/${s}`);
 
-    await expect(page.getByText("0.001")).toBeVisible({ timeout: CONTENT_TIMEOUT });
-    await expect(page.getByText("ETH").first()).toBeVisible();
+    await expect(page.getByText("$2")).toBeVisible({ timeout: CONTENT_TIMEOUT });
   });
 
   test("should pay with ETH and read content as a different reader", async ({ page, browser }) => {
@@ -116,7 +115,7 @@ test.describe("Article Flow", () => {
       title: "ETH Pay E2E Article",
       slug: s,
       body: "# Premium Content\n\nYou paid ETH to see this.",
-      price: "0.001",
+      price: "2", // $2 USD → 0.001 ETH at $2000/ETH (MockV3Aggregator default)
     });
 
     // 2. Reader (account #1) opens the article in a separate context
@@ -131,7 +130,7 @@ test.describe("Article Flow", () => {
       await expect(readerPage.getByText("This article requires payment")).toBeVisible({ timeout: CONTENT_TIMEOUT });
 
       // 4. Reader pays with ETH
-      await readerPage.getByRole("button", { name: /Pay 0\.001 ETH/ }).click();
+      await readerPage.getByRole("button", { name: /Pay ~?0\.001 ETH/ }).click();
 
       // 5. Content auto-loads after payment
       await expect(readerPage.getByText("Premium Content")).toBeVisible({ timeout: CONTENT_TIMEOUT });
