@@ -1,0 +1,34 @@
+# Sprint Status — paypink x402 Migration
+# Generated: 2026-02-16
+#
+# STATUS DEFINITIONS:
+#   backlog       — not yet started, story file not created
+#   ready-for-dev — story file created with full context, ready for dev-story
+#   in-progress   — dev-story actively implementing
+#   review        — code review in progress
+#   done          — story complete, code reviewed and merged
+
+development_status:
+  # ── Epic 1: Same-Chain USDC Payment for Readers ──
+  epic-1: in-progress
+  1-1-verify-eip3009-ink-usdc: done
+  1-2-install-thirdweb-sdk-configure-env: done
+  1-3-migrate-x402-route-thirdweb: done
+  1-4-verify-thirdweb-nextjs15-compatibility: done
+
+  # ── Epic 2: Trustless Token Custody & Creator Withdrawals ──
+  epic-2: backlog
+  2-1-set-payment-token-ink-usdc: backlog
+  2-2-reenable-balance-check-recordx402payment: backlog
+  2-3-verify-creator-usdc-withdrawal: backlog
+  2-4-verify-platform-fee-withdrawal: backlog
+
+  # ── Epic 3: Clean Up Base Sepolia & Frontend Chain-Switching ──
+  epic-3: backlog
+  3-1-remove-base-sepolia-scaffold-config: backlog
+  3-2-remove-chain-switching-article-reader: backlog
+  3-3-verify-backward-compatibility: backlog
+
+  # ── Epic 4: Documentation Update ──
+  epic-4: backlog
+  4-1-update-project-documentation: backlog

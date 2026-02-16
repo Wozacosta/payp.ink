@@ -16,12 +16,8 @@ vi.mock("next-auth/react", () => ({
 }));
 
 const mockUseAccount = vi.fn();
-const mockUseWalletClient = vi.fn();
-const mockUseSwitchChain = vi.fn();
 vi.mock("wagmi", () => ({
   useAccount: () => mockUseAccount(),
-  useWalletClient: () => mockUseWalletClient(),
-  useSwitchChain: () => mockUseSwitchChain(),
 }));
 
 const mockUseScaffoldReadContract = vi.fn();
@@ -43,9 +39,10 @@ vi.mock("@rainbow-me/rainbowkit", () => ({
   useConnectModal: () => ({ openConnectModal: vi.fn() }),
 }));
 
-vi.mock("@x402/core/client", () => ({ x402Client: vi.fn() }));
-vi.mock("@x402/evm/exact/client", () => ({ registerExactEvmScheme: vi.fn() }));
-vi.mock("@x402/fetch", () => ({ wrapFetchWithPayment: vi.fn() }));
+// TODO: Story 3.2 — remove after thirdweb migration
+// vi.mock("@x402/core/client", () => ({ x402Client: vi.fn() }));
+// vi.mock("@x402/evm/exact/client", () => ({ registerExactEvmScheme: vi.fn() }));
+// vi.mock("@x402/fetch", () => ({ wrapFetchWithPayment: vi.fn() }));
 
 vi.mock("~~/utils/scaffold-eth", () => ({
   notification: { success: vi.fn(), error: vi.fn() },
@@ -97,9 +94,7 @@ function setupMocks(
 
   mockUseParams.mockReturnValue({ slug: "test-article" });
   mockUseSession.mockReturnValue({ data: sessionAddress ? { address: sessionAddress } : null });
-  mockUseAccount.mockReturnValue({ address, chainId: 763373 });
-  mockUseWalletClient.mockReturnValue({ data: null });
-  mockUseSwitchChain.mockReturnValue({ switchChainAsync: vi.fn() });
+  mockUseAccount.mockReturnValue({ address, chainId: 84532 });
 
   mockUseScaffoldReadContract.mockImplementation((args: any) => {
     if (args.functionName === "getArticle") {
@@ -269,7 +264,7 @@ describe("ArticlePage", () => {
     });
   });
 
-  it("enables both pay buttons when no payment is in progress", async () => {
+  it("enables ETH pay button and disables USDC pay button", async () => {
     setupMocks({ hasPaid: false });
     render(<ArticlePage />);
 
@@ -277,12 +272,11 @@ describe("ArticlePage", () => {
       expect(screen.getByText("This article requires payment")).toBeInTheDocument();
     });
 
-    const payButtons = screen
-      .getAllByRole("button")
-      .filter(b => b.textContent?.includes("ETH") || b.textContent?.includes("USDC"));
-    expect(payButtons).toHaveLength(2);
-    for (const btn of payButtons) {
-      expect(btn).not.toBeDisabled();
-    }
+    const ethButton = screen.getAllByRole("button").find(b => b.textContent?.includes("ETH"));
+    const usdcButton = screen.getAllByRole("button").find(b => b.textContent?.includes("USDC"));
+    expect(ethButton).toBeDefined();
+    expect(usdcButton).toBeDefined();
+    expect(ethButton).not.toBeDisabled();
+    expect(usdcButton).toBeDisabled();
   });
 });
