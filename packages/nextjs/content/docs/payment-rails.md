@@ -1,6 +1,6 @@
 # Payment Rails
 
-Paypink supports two payment paths — ETH on-chain and USDC via the x402 protocol. Both converge on the same contract state: `hasPaid`, `views`, `earned`, and creator/platform balances are unified.
+Paypink supports two payment paths — ETH on-chain and USDC via the x402 protocol. Both settle on Ink and converge on the same contract state: `hasPaid`, `views`, `earned`, and creator/platform balances are unified.
 
 ![Dual Payment Rails — ETH + x402 ERC-20](/docs/payment-rails-dataflow.webp)
 
@@ -25,31 +25,34 @@ Reader -> payForArticle(slug) {value: ethAmount}
 
 ## Rail 2: x402 (USDC Stablecoin)
 
-The reader requests the article through the x402 content route. The x402 facilitator handles USDC payment negotiation off-chain, then the backend records the payment on-chain.
+The reader requests the article through the x402 content route. The thirdweb x402 facilitator handles USDC payment settlement on Ink, then the backend records the payment on-chain.
 
 ```
 Reader -> GET /api/articles/[slug]/x402
   |
-  +-> x402 middleware returns 402 with payment requirements
+  +-> settlePayment() returns 402 with payment requirements
   |
-Reader -> pays USDC via x402 facilitator (Base Sepolia)
+Reader -> pays USDC via thirdweb x402 facilitator (Ink)
   |
-  +-> Facilitator settles USDC
-  +-> Request replays with X-PAYMENT header
+  +-> Facilitator settles USDC into the Paypink contract on Ink
+  +-> Request replays with payment header
   |
 Server -> recordX402Payment(slug, reader, amount)
   |
   +-> onlyAuthorizedX402Caller modifier
+  +-> Balance check: balanceOf(this) - totalRecorded >= amount
   +-> hasPaid[slugHash][reader] = true
   +-> 99/1 token split: creatorTokenBalances / platformTokenBalance
+  +-> totalRecorded += amount
   +-> article.views++, article.earned += amount
 ```
 
 **Key details:**
-- x402 settlement happens on **Base Sepolia** (the only chain the x402 facilitator supports)
-- `recordX402Payment()` runs on **Ink Sepolia** — this is a cross-chain gap
-- The `onlyAuthorizedX402Caller` modifier is the primary defense against fake recordings
-- See [x402 Protocol](/docs/x402-protocol) for more on this cross-chain limitation
+- x402 settlement happens on **Ink** — the same chain as the Paypink contract
+- The facilitator settles USDC into the contract (using EIP-3009 `transferWithAuthorization` under the hood)
+- `recordX402Payment()` verifies real USDC tokens are present before crediting balances (`balanceOf - totalRecorded >= amount`)
+- The `onlyAuthorizedX402Caller` modifier provides defense-in-depth alongside the balance check
+- See [x402 Protocol](/docs/x402-protocol) for more on the thirdweb integration
 
 ## Shared State
 
@@ -68,7 +71,7 @@ Both rails write to the same state:
 Funds are never pushed to creators during payment. Instead, balances accumulate and creators withdraw at their discretion:
 
 - **ETH**: `withdraw()` — transfers accumulated ETH balance to the creator
-- **ERC-20**: `withdrawTokens()` — transfers accumulated USDC (or other payment token) to the creator
+- **ERC-20**: `withdrawTokens()` — transfers accumulated USDC to the creator (real tokens on Ink)
 - **Platform ETH**: `withdrawPlatformFees()` — owner-only
 - **Platform ERC-20**: `withdrawPlatformTokenFees()` — owner-only
 

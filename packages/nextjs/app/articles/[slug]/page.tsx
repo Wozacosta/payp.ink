@@ -3,23 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Address } from "@scaffold-ui/components";
-import { x402Client } from "@x402/core/client";
-import { registerExactEvmScheme } from "@x402/evm/exact/client";
-import { wrapFetchWithPayment } from "@x402/fetch";
 import type { NextPage } from "next";
 import { useSession } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { formatEther, formatUnits } from "viem";
-import { baseSepolia } from "viem/chains";
-import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
+import { useAccount } from "wagmi";
 import { SignInButton } from "~~/components/SignInButton";
 import { TipButton } from "~~/components/TipButton";
 import { useScaffoldReadContract, useScaffoldWriteContract, useTransactor } from "~~/hooks/scaffold-eth";
 import { getSlugHash } from "~~/services/web3/slugHash";
 import { verifyContentIntegrity } from "~~/utils/contentHash";
-import { getErrorMessage } from "~~/utils/getErrorMessage";
-import { notification } from "~~/utils/scaffold-eth";
 
 type ArticleContent = {
   slug: string;
@@ -30,16 +24,13 @@ type ArticleContent = {
 
 const ArticlePage: NextPage = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { address, chainId: activeChainId } = useAccount();
-  const { data: walletClient } = useWalletClient();
-  const { switchChainAsync } = useSwitchChain();
+  const { address } = useAccount();
   const { data: session } = useSession();
 
   const [articleContent, setArticleContent] = useState<ArticleContent | null>(null);
   const [fetchStatus, setFetchStatus] = useState<"idle" | "loading" | "loaded" | "paywall" | "error">("idle");
   const [fetchError, setFetchError] = useState("");
   const [payingEth, setPayingEth] = useState(false);
-  const [payingUsdc, setPayingUsdc] = useState(false);
   const [integrityOk, setIntegrityOk] = useState<boolean | null>(null);
 
   // Read on-chain article metadata
@@ -73,7 +64,7 @@ const ArticlePage: NextPage = () => {
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "Paypink" });
   const writeTx = useTransactor();
 
-  const isPaying = payingEth || payingUsdc;
+  const isPaying = payingEth;
   const isFree = onChainArticle ? onChainArticle.price === 0n : false;
   const priceUsd = onChainArticle ? formatUnits(onChainArticle.price, 18) : "0";
   // Add 10% slippage buffer for ETH payment (excess is refunded by the contract)
@@ -165,60 +156,6 @@ const ArticlePage: NextPage = () => {
     }
   };
 
-  // Pay with USDC (x402) — requires Base Sepolia
-  const handlePayUsdc = async () => {
-    if (!walletClient || !address) {
-      notification.error("Wallet not connected.");
-      return;
-    }
-
-    setPayingUsdc(true);
-    const previousChainId = activeChainId;
-    try {
-      // x402 settles on Base Sepolia — switch chain if needed
-      if (activeChainId !== baseSepolia.id) {
-        await switchChainAsync({ chainId: baseSepolia.id });
-      }
-
-      const signer = {
-        address: address as `0x${string}`,
-        signTypedData: (msg: {
-          domain: Record<string, unknown>;
-          types: Record<string, unknown>;
-          primaryType: string;
-          message: Record<string, unknown>;
-        }) => walletClient.signTypedData(msg as any),
-      };
-
-      const client = new x402Client();
-      registerExactEvmScheme(client, { signer });
-      const fetchWithPayment = wrapFetchWithPayment(fetch, client);
-
-      const res = await fetchWithPayment(`/api/articles/${slug}/x402`);
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Payment failed" }));
-        notification.error(data.error || "USDC payment failed.");
-        return;
-      }
-
-      const data: ArticleContent = await res.json();
-      setArticleContent(data);
-      setFetchStatus("loaded");
-      notification.success("Payment successful!");
-      await refetchHasPaid();
-      checkIntegrity(data.body);
-    } catch (e: unknown) {
-      notification.error(getErrorMessage(e, "USDC payment failed."));
-    } finally {
-      // Switch back to the original chain
-      if (previousChainId && previousChainId !== baseSepolia.id) {
-        await switchChainAsync({ chainId: previousChainId }).catch(() => {});
-      }
-      setPayingUsdc(false);
-    }
-  };
-
   // --- Loading state ---
   if (isLoadingArticle) {
     return (
@@ -286,16 +223,11 @@ const ArticlePage: NextPage = () => {
                     `Pay ~${ethDisplayAmount} ETH`
                   )}
                 </button>
-                <button className="btn btn-secondary" onClick={handlePayUsdc} disabled={isPaying}>
-                  {payingUsdc ? (
-                    <>
-                      <span className="loading loading-spinner loading-sm"></span>
-                      Paying...
-                    </>
-                  ) : (
-                    `Pay $${priceUsd} USDC`
-                  )}
-                </button>
+                <div className="tooltip" data-tip="USDC payment via x402 — client integration coming soon">
+                  <button className="btn btn-secondary" disabled>
+                    {`Pay $${priceUsd} USDC`}
+                  </button>
+                </div>
               </div>
             )}
           </div>

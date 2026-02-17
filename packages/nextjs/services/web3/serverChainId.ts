@@ -1,14 +1,18 @@
+import type { Chain } from "viem";
 import { foundry, inkSepolia } from "viem/chains";
 
-const SUPPORTED_CHAIN_IDS = [foundry.id, inkSepolia.id] as const;
+const CHAINS: Record<number, Chain> = {
+  [foundry.id]: foundry,
+  [inkSepolia.id]: inkSepolia,
+};
 
 function resolveChainId(): number {
   const raw = process.env.NEXT_PUBLIC_TARGET_CHAIN_ID;
   if (raw) {
     const parsed = Number(raw);
-    if (!Number.isFinite(parsed) || !SUPPORTED_CHAIN_IDS.includes(parsed as (typeof SUPPORTED_CHAIN_IDS)[number])) {
+    if (!Number.isFinite(parsed) || !(parsed in CHAINS)) {
       throw new Error(
-        `Invalid NEXT_PUBLIC_TARGET_CHAIN_ID="${raw}". Must be one of: ${SUPPORTED_CHAIN_IDS.join(", ")}`,
+        `Invalid NEXT_PUBLIC_TARGET_CHAIN_ID="${raw}". Must be one of: ${Object.keys(CHAINS).join(", ")}`,
       );
     }
     return parsed;
@@ -20,4 +24,8 @@ const CHAIN_ID = resolveChainId();
 
 export function getServerChainId(): number {
   return CHAIN_ID;
+}
+
+export function getServerChain(): Chain {
+  return CHAINS[CHAIN_ID];
 }

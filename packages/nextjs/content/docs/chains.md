@@ -1,10 +1,10 @@
 # Chains & Networks
 
-Paypink operates across multiple chains depending on the context — local development, testnet, and the payment layer each use different networks.
+Paypink operates on Ink L2 for all on-chain activity — smart contracts, ETH payments, and USDC settlement via x402.
 
 ## Ink L2
 
-[Ink](https://inkonchain.com/) is Kraken's Layer 2, built on the [OP Stack](https://docs.optimism.io/stack/getting-started) (Optimism's modular rollup framework). It's where the Paypink smart contract lives.
+[Ink](https://inkonchain.com/) is Kraken's Layer 2, built on the [OP Stack](https://docs.optimism.io/stack/getting-started) (Optimism's modular rollup framework). It's where the Paypink smart contract lives and where all payments settle.
 
 **Why Ink?**
 
@@ -12,28 +12,17 @@ Paypink operates across multiple chains depending on the context — local devel
 - EVM-compatible — same Solidity, same tooling
 - Part of the [Superchain](https://www.superchain.eco/) ecosystem (interoperable with other OP Stack chains)
 - Backed by Kraken — strong exchange integration potential
+- [Circle deploys native USDC on Ink](https://www.circle.com/multi-chain-usdc/ink) (not bridged) with EIP-3009 support
+- [thirdweb's x402 facilitator supports Ink](https://portal.thirdweb.com/x402) — enabling same-chain USDC settlement
 
 | Network | Chain ID | RPC | Explorer |
 |---------|----------|-----|----------|
 | Ink Sepolia (testnet) | 763373 | `https://rpc-gel-sepolia.inkonchain.com` | [explorer-sepolia.inkonchain.com](https://explorer-sepolia.inkonchain.com) |
 | Ink Mainnet | 57073 | `https://rpc-gel.inkonchain.com` | [explorer.inkonchain.com](https://explorer.inkonchain.com) |
 
+CAIP-2 identifiers: `eip155:763373` (Sepolia), `eip155:57073` (Mainnet).
+
 Docs: [docs.inkonchain.com](https://docs.inkonchain.com/)
-
-## Base Sepolia
-
-[Base](https://www.base.org/) is Coinbase's L2, also built on the OP Stack. Paypink uses Base Sepolia for one specific purpose: **x402 USDC payments**.
-
-The [x402 facilitator](https://docs.cdp.coinbase.com/x402/docs/welcome) only supports Base (and Base Sepolia for testnet). When a reader pays with USDC via x402, the settlement happens on Base Sepolia — not Ink.
-
-This creates a **cross-chain gap**: the USDC lands on Base, but the payment is recorded on the Paypink contract on Ink. See [x402 Protocol](/docs/x402-protocol) for details on this limitation and future solutions.
-
-| Network | Chain ID | RPC | Explorer |
-|---------|----------|-----|----------|
-| Base Sepolia | 84532 | `https://sepolia.base.org` | [sepolia.basescan.org](https://sepolia.basescan.org) |
-| Base Mainnet | 8453 | `https://mainnet.base.org` | [basescan.org](https://basescan.org) |
-
-Docs: [docs.base.org](https://docs.base.org/)
 
 ## Foundry / Anvil (Local Development)
 
@@ -50,6 +39,7 @@ Anvil provides:
 - Instant block mining (no waiting for confirmations)
 - Pre-funded test accounts
 - A `MockV3Aggregator` for the price feed (deployed automatically, hardcoded at $2000/ETH)
+- A `MockERC20` for USDC in token payment tests
 - Full EVM compatibility with mainnet
 
 ## Chain Selection
@@ -62,25 +52,23 @@ The app determines which chain to target based on the `NEXT_PUBLIC_TARGET_CHAIN_
 | `763373` | Ink Sepolia | Testnet deployment |
 | `57073` | Ink Mainnet | Production |
 
-This is set in `.env.local`. The frontend's `scaffold.config.ts` also lists target networks — the **first network in the array** is the default chain for wallet connections.
+This is set in `.env.local`. The frontend's `scaffold.config.ts` also lists target networks — the **first network in the array** is the default chain for wallet connections. In local dev, `foundry` is first; in production, only `inkSepolia` is listed.
 
 ## Oracle Availability by Chain
 
-Not all services are available on all chains. This affects what Paypink can do where:
-
-| Service | Ink Sepolia | Ink Mainnet | Base Sepolia |
-|---------|-------------|-------------|--------------|
-| Paypink contract | Yes | Planned | No |
-| x402 facilitator | No | No | Yes |
-| Redstone ETH/USD feed | Yes | Yes | Yes |
-| Chainlink price feeds | Coming soon | Coming soon | Yes |
-| Chainlink VRF | No | No | Yes |
-| Gelato VRF | [Available](https://docs.inkonchain.com/tools/vrf) | Available | N/A |
+| Service | Ink Sepolia | Ink Mainnet |
+|---------|-------------|-------------|
+| Paypink contract | Yes | Planned |
+| x402 facilitator (thirdweb) | Yes | Yes |
+| USDC (Circle native) | Yes | Yes |
+| Redstone ETH/USD feed | Yes | Yes |
+| Chainlink price feeds | Coming soon | Coming soon |
+| Gelato VRF | [Available](https://docs.inkonchain.com/tools/vrf) | Available |
 
 See [Oracle & Pricing](/docs/oracle-pricing) for details on the oracle evaluation.
 
 ## Related Docs
 
 - [Architecture](/docs/architecture) — system overview
-- [x402 Protocol](/docs/x402-protocol) — cross-chain payment limitation
+- [x402 Protocol](/docs/x402-protocol) — USDC payment via x402
 - [Oracle & Pricing](/docs/oracle-pricing) — price feed selection per chain

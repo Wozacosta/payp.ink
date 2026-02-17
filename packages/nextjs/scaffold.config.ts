@@ -16,9 +16,7 @@ export const DEFAULT_ALCHEMY_API_KEY = "cR4WnXePioePZ5fFrnSiR";
 // First network is the default — foundry first for local dev, Ink Sepolia for production
 const isLocalDev = process.env.NODE_ENV !== "production";
 
-const targetNetworks = isLocalDev
-  ? ([chains.foundry, chains.inkSepolia, chains.baseSepolia] as const)
-  : ([chains.inkSepolia, chains.baseSepolia, chains.foundry] as const);
+const targetNetworks = isLocalDev ? ([chains.foundry, chains.inkSepolia] as const) : ([chains.inkSepolia] as const);
 
 const scaffoldConfig = {
   // The networks on which your DApp is live
