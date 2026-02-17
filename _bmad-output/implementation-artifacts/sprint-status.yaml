@@ -24,10 +24,10 @@ development_status:
   2-4-verify-platform-fee-withdrawal: done
 
   # ── Epic 3: Clean Up Base Sepolia & Frontend Chain-Switching ──
-  epic-3: backlog
-  3-1-remove-base-sepolia-scaffold-config: backlog
-  3-2-remove-chain-switching-article-reader: backlog
-  3-3-verify-backward-compatibility: backlog
+  epic-3: done
+  3-1-remove-base-sepolia-scaffold-config: done
+  3-2-remove-chain-switching-article-reader: done
+  3-3-verify-backward-compatibility: done
 
   # ── Epic 4: Documentation Update ──
   epic-4: backlog

@@ -3,26 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Address } from "@scaffold-ui/components";
-// TODO: Story 3.2 — remove chain-switching + CDP client
-// import { x402Client } from "@x402/core/client";
-// import { registerExactEvmScheme } from "@x402/evm/exact/client";
-// import { wrapFetchWithPayment } from "@x402/fetch";
 import type { NextPage } from "next";
 import { useSession } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { formatEther, formatUnits } from "viem";
-// TODO: Story 3.2 — remove after thirdweb migration
-// import { baseSepolia } from "viem/chains";
 import { useAccount } from "wagmi";
 import { SignInButton } from "~~/components/SignInButton";
 import { TipButton } from "~~/components/TipButton";
 import { useScaffoldReadContract, useScaffoldWriteContract, useTransactor } from "~~/hooks/scaffold-eth";
 import { getSlugHash } from "~~/services/web3/slugHash";
 import { verifyContentIntegrity } from "~~/utils/contentHash";
-
-// TODO: Story 3.2 — remove after thirdweb migration
-// import { getErrorMessage } from "~~/utils/getErrorMessage";
 
 type ArticleContent = {
   slug: string;

@@ -39,11 +39,6 @@ vi.mock("@rainbow-me/rainbowkit", () => ({
   useConnectModal: () => ({ openConnectModal: vi.fn() }),
 }));
 
-// TODO: Story 3.2 — remove after thirdweb migration
-// vi.mock("@x402/core/client", () => ({ x402Client: vi.fn() }));
-// vi.mock("@x402/evm/exact/client", () => ({ registerExactEvmScheme: vi.fn() }));
-// vi.mock("@x402/fetch", () => ({ wrapFetchWithPayment: vi.fn() }));
-
 vi.mock("~~/utils/scaffold-eth", () => ({
   notification: { success: vi.fn(), error: vi.fn() },
 }));
@@ -94,7 +89,7 @@ function setupMocks(
 
   mockUseParams.mockReturnValue({ slug: "test-article" });
   mockUseSession.mockReturnValue({ data: sessionAddress ? { address: sessionAddress } : null });
-  mockUseAccount.mockReturnValue({ address, chainId: 84532 });
+  mockUseAccount.mockReturnValue({ address });
 
   mockUseScaffoldReadContract.mockImplementation((args: any) => {
     if (args.functionName === "getArticle") {

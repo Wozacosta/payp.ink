@@ -1,10 +1,9 @@
 import type { Chain } from "viem";
-import { baseSepolia, foundry, inkSepolia } from "viem/chains";
+import { foundry, inkSepolia } from "viem/chains";
 
 const CHAINS: Record<number, Chain> = {
   [foundry.id]: foundry,
   [inkSepolia.id]: inkSepolia,
-  [baseSepolia.id]: baseSepolia,
 };
 
 function resolveChainId(): number {
