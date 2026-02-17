@@ -81,6 +81,8 @@ contract Paypink {
     mapping(address creator => uint256 balance) public creatorTokenBalances;
     /// @notice Accumulated platform ERC-20 fees available for withdrawal.
     uint256 public platformTokenBalance;
+    /// @notice Total ERC-20 amount recorded via x402 payments (used for balance verification).
+    uint256 public totalRecorded;
 
     constructor(address _paymentToken, address _priceFeed) {
         if (_priceFeed == address(0)) {
@@ -143,6 +145,10 @@ contract Paypink {
     error Paypink__InvalidPriceFeedDecimals();
     /// @notice Thrown when maxStaleness is set outside allowed bounds.
     error Paypink__InvalidStaleness();
+    /// @notice Thrown when the contract holds insufficient ERC-20 tokens to cover a recorded payment.
+    error Paypink__InsufficientTokenBalance();
+    /// @notice Thrown when trying to change the payment token while unclaimed balances exist.
+    error Paypink__OutstandingTokenBalance();
     /* ----- MODIFIERS ----- */
 
     modifier onlyOwner() {
@@ -240,11 +246,11 @@ contract Paypink {
         emit CreatorTipped(creator, msg.value);
     }
 
-    /// @notice Record an x402 ERC-20 payment. The x402 facilitator settles USDC on its own chain
-    ///         (e.g. Base Sepolia), so we trust the authorized caller and skip on-chain balance checks.
+    /// @notice Record an x402 ERC-20 payment. Verifies that real tokens have been settled
+    ///         into the contract before crediting balances (defense-in-depth alongside access control).
     /// @param slug Unique identifier of the article.
     /// @param reader Address of the reader who paid via x402.
-    /// @param amount ERC-20 amount paid (for accounting only — tokens live on the settlement chain).
+    /// @param amount ERC-20 amount paid (must be backed by actual tokens in the contract).
     function recordX402Payment(string calldata slug, address reader, uint256 amount) external onlyAuthorizedX402Caller {
         bytes32 key = keccak256(abi.encodePacked(slug));
         Article storage article = articles[key];
@@ -255,9 +261,17 @@ contract Paypink {
             revert Paypink__AlreadyPaid();
         }
 
+        // Underflows (reverts) if balanceOf < totalRecorded, which is intentional:
+        // it means tokens were removed outside normal withdrawal flows.
+        uint256 available = IERC20(paymentToken).balanceOf(address(this)) - totalRecorded;
+        if (available < amount) {
+            revert Paypink__InsufficientTokenBalance();
+        }
+
         hasPaid[key][reader] = true;
         article.views += 1;
         article.earned += amount;
+        totalRecorded += amount;
 
         _splitTokenPayment(amount, article.creator);
 
@@ -304,10 +318,14 @@ contract Paypink {
     /* ----- SETTERS ----- */
 
     /// @notice Set the payment token address. Only callable by the contract owner.
+    /// @dev Reverts if there are unclaimed token balances to prevent totalRecorded corruption.
     /// @param _token The new payment token address.
     function setPaymentToken(address _token) external onlyOwner {
         if (_token == address(0)) {
             revert Paypink__InvalidAddress();
+        }
+        if (totalRecorded != 0) {
+            revert Paypink__OutstandingTokenBalance();
         }
         address oldToken = paymentToken;
         paymentToken = _token;
@@ -384,14 +402,13 @@ contract Paypink {
     }
 
     /// @notice Withdraw the caller's accumulated ERC-20 earnings.
-    /// @dev In the cross-chain x402 model, tokens may not be on this chain.
-    ///      This function is kept for same-chain payment flows.
     function withdrawTokens() external {
         uint256 valueToWithdraw = creatorTokenBalances[msg.sender];
         if (valueToWithdraw == 0) {
             revert Paypink__NothingToWithdraw();
         }
         creatorTokenBalances[msg.sender] = 0;
+        totalRecorded -= valueToWithdraw;
         IERC20(paymentToken).safeTransfer(msg.sender, valueToWithdraw);
     }
 
@@ -402,6 +419,7 @@ contract Paypink {
             revert Paypink__NothingToWithdraw();
         }
         platformTokenBalance = 0;
+        totalRecorded -= valueToWithdraw;
         IERC20(paymentToken).safeTransfer(owner, valueToWithdraw);
     }
 
