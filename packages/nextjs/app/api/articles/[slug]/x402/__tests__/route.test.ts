@@ -58,7 +58,7 @@ vi.mock("thirdweb/chains", () => ({
 }));
 
 vi.mock("../helpers", () => ({
-  getX402Chain: vi.fn(() => ({ id: 84532, type: "mock-chain" })),
+  getX402Chain: vi.fn(() => ({ id: 763373, type: "mock-chain" })),
   thirdwebFacilitator: { type: "mock-facilitator" },
 }));
 
@@ -187,7 +187,7 @@ describe("GET /api/articles/[slug]/x402", () => {
       mockSettlePayment.mockResolvedValue({
         status: 200,
         responseHeaders: {},
-        paymentReceipt: { success: true, transaction: "0xtx", network: "eip155:84532", payer: MOCK_PAYER },
+        paymentReceipt: { success: true, transaction: "0xtx", network: "eip155:763373", payer: MOCK_PAYER },
       });
       mockLimit.mockResolvedValue(publishedArticle);
       mockWriteContract.mockResolvedValue(undefined);
@@ -205,9 +205,12 @@ describe("GET /api/articles/[slug]/x402", () => {
         body: "# Hello World",
         creatorAddress: "0xABCDEF1234567890ABCDEF1234567890ABCDEF12",
       });
+      // $1.00 article → 1_000000 USDC (6 decimals)
+      // Address is EIP-55 checksummed by getAddress() in the route
       expect(mockWriteContract).toHaveBeenCalledWith(
         expect.objectContaining({
           functionName: "recordX402Payment",
+          args: ["test-article", expect.stringMatching(/^0x[a-fA-F0-9]{40}$/), 1_000000n],
         }),
       );
     });
@@ -217,7 +220,7 @@ describe("GET /api/articles/[slug]/x402", () => {
       mockSettlePayment.mockResolvedValue({
         status: 200,
         responseHeaders: {},
-        paymentReceipt: { success: true, transaction: "0xtx", network: "eip155:84532", payer: MOCK_PAYER },
+        paymentReceipt: { success: true, transaction: "0xtx", network: "eip155:763373", payer: MOCK_PAYER },
       });
       mockLimit.mockResolvedValue(publishedArticle);
       mockWriteContract.mockResolvedValue(undefined);
@@ -263,7 +266,7 @@ describe("GET /api/articles/[slug]/x402", () => {
       mockSettlePayment.mockResolvedValue({
         status: 200,
         responseHeaders: {},
-        paymentReceipt: { success: true, transaction: "0xtx", network: "eip155:84532" },
+        paymentReceipt: { success: true, transaction: "0xtx", network: "eip155:763373" },
       });
 
       const res = await GET(makeRequest("test-article"), routeParams("test-article"));
@@ -278,7 +281,7 @@ describe("GET /api/articles/[slug]/x402", () => {
       mockSettlePayment.mockResolvedValue({
         status: 200,
         responseHeaders: {},
-        paymentReceipt: { success: true, transaction: "0xtx", network: "eip155:84532", payer: MOCK_PAYER },
+        paymentReceipt: { success: true, transaction: "0xtx", network: "eip155:763373", payer: MOCK_PAYER },
       });
       mockLimit.mockResolvedValue(publishedArticle);
       mockWriteContract.mockRejectedValue(new Error("Paypink__AlreadyPaid"));
@@ -298,7 +301,7 @@ describe("GET /api/articles/[slug]/x402", () => {
       mockSettlePayment.mockResolvedValue({
         status: 200,
         responseHeaders: {},
-        paymentReceipt: { success: true, transaction: "0xtx", network: "eip155:84532", payer: MOCK_PAYER },
+        paymentReceipt: { success: true, transaction: "0xtx", network: "eip155:763373", payer: MOCK_PAYER },
       });
       mockLimit.mockResolvedValue(publishedArticle);
       mockWriteContract.mockRejectedValue(new Error("execution reverted"));

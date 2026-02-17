@@ -223,7 +223,7 @@ const ArticlePage: NextPage = () => {
                     `Pay ~${ethDisplayAmount} ETH`
                   )}
                 </button>
-                <div className="tooltip" data-tip="USDC payment coming soon (thirdweb migration in progress)">
+                <div className="tooltip" data-tip="USDC payment via x402 — client integration coming soon">
                   <button className="btn btn-secondary" disabled>
                     {`Pay $${priceUsd} USDC`}
                   </button>

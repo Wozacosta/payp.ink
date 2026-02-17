@@ -109,7 +109,7 @@ Playwright Browser
 
 ### Known limitations
 
-- **x402 USDC payment**: Not testable locally — requires Base Sepolia + remote x402 facilitator
+- **x402 USDC payment**: Server-side logic tested via Vitest with mocked thirdweb `settlePayment()`. Full end-to-end x402 flow (reader wallet -> facilitator -> on-chain settlement) requires a deployed Ink testnet environment
 - **Creator withdrawal**: Not yet implemented in E2E (contract interaction works, UI flow untested)
 
 ## Running all tests

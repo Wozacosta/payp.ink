@@ -1,6 +1,6 @@
 # x402 Protocol
 
-[x402](https://www.x402.org/) is an HTTP-native payment protocol developed by [Coinbase](https://docs.cdp.coinbase.com/x402/docs/welcome). It turns the browser's HTTP 402 ("Payment Required") status code into an actual payment flow — no checkout page, no payment form, just a standard HTTP request that gets paid for automatically.
+[x402](https://www.x402.org/) is an HTTP-native payment protocol that turns the browser's HTTP 402 ("Payment Required") status code into an actual payment flow — no checkout page, no payment form, just a standard HTTP request that gets paid for automatically.
 
 ## How x402 Works
 
@@ -9,8 +9,8 @@
 2. Server responds:     402 Payment Required
                         + payment requirements (amount, token, payTo address)
 3. Reader's client:     Signs and submits payment to x402 facilitator
-4. Facilitator:         Settles USDC on-chain
-5. Request replays:     Original request + X-PAYMENT header (proof of payment)
+4. Facilitator:         Settles USDC on-chain (Ink)
+5. Request replays:     Original request + payment header (proof of payment)
 6. Server responds:     200 OK + article content
 ```
 
@@ -21,41 +21,35 @@ The key insight: **payment is part of the HTTP request lifecycle**. The reader's
 Paypink's x402 content route (`/api/articles/[slug]/x402`) works as follows:
 
 1. The route reads the article's USD price from the on-chain registry
-2. The `withX402` middleware wraps the route, specifying:
+2. It calls `settlePayment()` from the thirdweb SDK, specifying:
    - `payTo`: the Paypink contract address
-   - `maxAmountRequired`: the article price in USD (2 decimal places)
-   - `network`: Base Sepolia (the only chain the facilitator supports — see [x402 network support](https://docs.cdp.coinbase.com/x402/docs/network-support))
-3. If the reader hasn't paid, the middleware returns 402
-4. After x402 settlement, the route:
-   - Decodes the `X-PAYMENT` header to get the payer address and amount
-   - Calls `recordX402Payment(slug, reader, amount)` on the Paypink contract via a server wallet
+   - `price`: the article price in USD (e.g. `$0.50`)
+   - `network`: Ink (derived from `getServerChainId()` via thirdweb's `defineChain()`)
+   - `facilitator`: thirdweb's x402 facilitator (configured with a server wallet address and secret key)
+3. If the reader hasn't paid, `settlePayment()` returns a 402 response with payment requirements
+4. After x402 settlement (USDC lands in the contract on Ink), the route:
+   - Extracts the payer address from the payment receipt
+   - Calls `recordX402Payment(slug, reader, amount)` on the Paypink contract via the server wallet
+   - The contract verifies the USDC is actually present (`balanceOf - totalRecorded >= amount`) before crediting balances
    - Returns the article content
 
-## Cross-Chain Limitation
+## Same-Chain Settlement
 
-This is the biggest architectural constraint:
+USDC payment settles on **Ink** — the same chain where the Paypink contract lives. This means:
 
-- **x402 facilitator** settles USDC on **Base Sepolia** ([the only supported chain](https://docs.cdp.coinbase.com/x402/docs/network-support))
-- **Paypink contract** lives on **Ink Sepolia**
-- `recordX402Payment()` runs on Ink but the USDC was received on Base
-
-This means the on-chain balance check in `recordX402Payment` is currently disabled — the contract can't verify USDC balance cross-chain. The `onlyAuthorizedX402Caller` modifier is the primary defense.
-
-### Future Solutions
-
-| Approach | Description |
-|----------|-------------|
-| Deploy on Base | Move Paypink to Base Sepolia where x402 settles. Simplest fix. |
-| [Chainlink CCIP](https://docs.chain.link/ccip) | Cross-chain message from Base to Ink verifying payment. Most robust. |
-| Self-hosted facilitator | Run an x402 facilitator that settles on Ink directly. Most flexible. |
+- The contract can verify real USDC tokens are present before recording a payment
+- `withdrawTokens()` transfers real USDC to creators
+- No cross-chain trust assumptions are needed
+- The `onlyAuthorizedX402Caller` modifier provides defense-in-depth alongside the balance check
 
 ## SDK
 
-Paypink uses `x402-next` (Coinbase's official Next.js integration):
+Paypink uses the [thirdweb SDK](https://portal.thirdweb.com/) for x402 integration:
 
-- **Server**: `withX402` middleware wraps API routes
-- **Client**: The x402 client library handles 402 responses in the browser
-- **Facilitator**: Coinbase's public testnet facilitator (no API key needed)
+- **Server**: `settlePayment()` from `thirdweb/x402` handles payment verification and settlement; `facilitator()` configures the facilitator connection
+- **Client**: thirdweb's client library handles 402 responses in the browser
+- **Facilitator**: [thirdweb's x402 facilitator](https://portal.thirdweb.com/x402) supports 170+ EVM chains including Ink
+- **Authentication**: `THIRDWEB_SECRET_KEY` (server-only) and `NEXT_PUBLIC_THIRDWEB_CLIENT_ID` (client)
 
 ## Why x402?
 
@@ -68,7 +62,7 @@ Paypink uses `x402-next` (Coinbase's official Next.js integration):
 ## External Resources
 
 - [x402.org](https://www.x402.org/) — protocol spec and ecosystem
-- [x402 Coinbase Developer Docs](https://docs.cdp.coinbase.com/x402/docs/welcome) — SDK reference, network support
+- [thirdweb x402 Docs](https://portal.thirdweb.com/x402) — facilitator reference
 - [x402 GitHub](https://github.com/coinbase/x402) — open-source reference implementation
 - [x402 v2 Launch Announcement](https://www.x402.org/writing/x402-v2-launch)
 - [x402 From First Principles](https://medium.com/@psudokit/x402-from-first-principles-a-complete-protocol-architecture-security-ai-economy-and-developer-cc1c6ff1034b) — deep-dive on protocol architecture, security, and AI economy

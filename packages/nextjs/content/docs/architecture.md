@@ -37,7 +37,7 @@ Creator                          Reader
 | Authentication | Sign-In with Ethereum (SIWE) via NextAuth v4 |
 | Database | Supabase (Postgres) via Drizzle ORM |
 | Payment (ETH) | Direct on-chain `payForArticle()` |
-| Payment (stablecoin) | x402 protocol (USDC on Base Sepolia) |
+| Payment (stablecoin) | x402 protocol (USDC on Ink via thirdweb facilitator) |
 | Price feed | Redstone oracle (ETH/USD) |
 | Scaffolding | Scaffold-ETH 2 (Foundry flavor) |
 
@@ -88,5 +88,5 @@ See [Payment Rails](/docs/payment-rails) for the full deep dive.
 - [Payment Rails](/docs/payment-rails) — dual ETH + x402 deep dive
 - [Authentication](/docs/authentication) — SIWE flow
 - [Oracle & Pricing](/docs/oracle-pricing) — USD pricing, oracle selection
-- [x402 Protocol](/docs/x402-protocol) — how x402 works, cross-chain considerations
+- [x402 Protocol](/docs/x402-protocol) — how x402 works with thirdweb on Ink
 - [Roadmap](/docs/roadmap) — v2 vision, monetization stack

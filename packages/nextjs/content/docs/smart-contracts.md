@@ -64,7 +64,18 @@ The contract uses `AggregatorV3Interface` to convert USD prices to ETH at paymen
 
 ### ERC-20 Support
 
-A single payment token (USDC) is configured via `setPaymentToken()`. ERC-20 payments flow through `recordX402Payment()` and use `SafeERC20.safeTransfer` for withdrawals. Multi-token support is planned for v2.
+A single payment token (USDC) is configured via `setPaymentToken()`. On Ink, this is Circle's native USDC which supports EIP-3009 (`transferWithAuthorization`).
+
+ERC-20 payments flow through `recordX402Payment()`, which verifies real token custody before crediting balances:
+
+```
+available = IERC20(paymentToken).balanceOf(address(this)) - totalRecorded
+require(available >= amount)  // reverts with Paypink__InsufficientTokenBalance
+```
+
+The `totalRecorded` counter tracks cumulative recorded amounts and is decremented when creators or the platform withdraw via `withdrawTokens()` / `withdrawPlatformTokenFees()`. This ensures the contract never credits phantom balances — every recorded payment must be backed by actual USDC in the contract.
+
+Withdrawals use `SafeERC20.safeTransfer`. Multi-token support is planned for v2.
 
 ## Deployment
 

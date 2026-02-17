@@ -30,5 +30,5 @@ development_status:
   3-3-verify-backward-compatibility: done
 
   # ── Epic 4: Documentation Update ──
-  epic-4: backlog
-  4-1-update-project-documentation: backlog
+  epic-4: done
+  4-1-update-project-documentation: done
